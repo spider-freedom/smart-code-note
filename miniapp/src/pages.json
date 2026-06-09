@@ -1,0 +1,114 @@
+{
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^u-(.*)": "uview-plus/components/u-$1/u-$1.vue"
+    }
+  },
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "智能开发笔记"
+      }
+    },
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "pages/notes/list/list",
+      "style": {
+        "navigationBarTitleText": "我的笔记"
+      }
+    },
+    {
+      "path": "pages/notes/detail/detail",
+      "style": {
+        "navigationBarTitleText": "笔记详情"
+      }
+    },
+    {
+      "path": "pages/knowledge/list/list",
+      "style": {
+        "navigationBarTitleText": "知识点"
+      }
+    },
+    {
+      "path": "pages/knowledge/detail/detail",
+      "style": {
+        "navigationBarTitleText": "知识点详情"
+      }
+    },
+    {
+      "path": "pages/questions/list/list",
+      "style": {
+        "navigationBarTitleText": "题目管理"
+      }
+    },
+    {
+      "path": "pages/questions/detail/detail",
+      "style": {
+        "navigationBarTitleText": "题目详情"
+      }
+    },
+    {
+      "path": "pages/practice/practice",
+      "style": {
+        "navigationBarTitleText": "在线练习"
+      }
+    },
+    {
+      "path": "pages/reviews/reviews",
+      "style": {
+        "navigationBarTitleText": "复习计划"
+      }
+    },
+    {
+      "path": "pages/profile/profile",
+      "style": {
+        "navigationBarTitleText": "个人中心"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "智能开发笔记",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F5F5F5"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#2563eb",
+    "borderStyle": "black",
+    "backgroundColor": "#FFFFFF",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "static/tabbar/home.png",
+        "selectedIconPath": "static/tabbar/home-active.png"
+      },
+      {
+        "pagePath": "pages/notes/list/list",
+        "text": "笔记",
+        "iconPath": "static/tabbar/note.png",
+        "selectedIconPath": "static/tabbar/note-active.png"
+      },
+      {
+        "pagePath": "pages/knowledge/list/list",
+        "text": "知识点",
+        "iconPath": "static/tabbar/knowledge.png",
+        "selectedIconPath": "static/tabbar/knowledge-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "static/tabbar/profile.png",
+        "selectedIconPath": "static/tabbar/profile-active.png"
+      }
+    ]
+  }
+}

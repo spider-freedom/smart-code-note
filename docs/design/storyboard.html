@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《我不是戏神》短视频书评 - 分镜脚本</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Microsoft YaHei", sans-serif;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    padding: 40px 20px;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 {
+    text-align: center;
+    font-size: 2.4em;
+    background: linear-gradient(135deg, #c0392b, #e74c3c, #f39c12);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .subtitle { text-align: center; color: #888; margin-bottom: 48px; font-size: 1.1em; }
+  .card {
+    background: #141414;
+    border: 1px solid #222;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(231,76,60,.15); }
+  .card-header {
+    background: #1a1a1a;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid #222;
+  }
+  .card-header .time {
+    background: #c0392b;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: .85em;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .card-header .title { font-size: 1.15em; font-weight: 600; }
+  .card-body { display: flex; }
+  .card-body img {
+    width: 50%;
+    object-fit: cover;
+    border-right: 1px solid #222;
+    display: block;
+  }
+  .card-body .copy {
+    width: 50%;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .card-body .copy .label {
+    font-size: .75em;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #c0392b;
+    margin-bottom: 8px;
+  }
+  .card-body .copy p { font-size: 1.1em; line-height: 1.7; color: #ccc; }
+  .card-footer {
+    padding: 12px 24px;
+    background: #0d0d0d;
+    border-top: 1px solid #222;
+    display: flex;
+    gap: 16px;
+    font-size: .8em;
+    color: #666;
+  }
+  .summary-section { margin-top: 48px; }
+  .summary-section h2 {
+    font-size: 1.5em;
+    margin-bottom: 20px;
+    color: #e74c3c;
+  }
+  .summary-section table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+  }
+  .summary-section td {
+    padding: 10px 16px;
+    border-bottom: 1px solid #222;
+  }
+  .summary-section td:first-child { color: #888; width: 120px; }
+  .copy-text {
+    background: #141414;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+    font-size: .95em;
+    line-height: 1.8;
+    color: #aaa;
+    margin-top: 8px;
+    white-space: pre-wrap;
+  }
+  @media (max-width: 768px) {
+    .card-body { flex-direction: column; }
+    .card-body img, .card-body .copy { width: 100%; }
+    h1 { font-size: 1.6em; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>《我不是戏神》短视频书评</h1>
+<p class="subtitle">三九音域 · 番茄小说殿堂作家 · 400万字爆款网文 | 分镜脚本 + AI 关键帧</p>
+
+<!-- KF01 -->
+<div class="card">
+  <div class="card-header">
+    <span class="time">0-5s</span>
+    <span class="title">开场冲击 · 标题炸弹</span>
+  </div>
+  <div class="card-body">
+    <img src="kf01_theater.png" alt="末世戏院">
+    <div class="copy">
+      <div class="label">旁白</div>
+      <p>（无配音，仅音效炸裂 + 大字浮现）</p>
+      <p style="font-size:1.3em;color:#e74c3c;margin-top:12px;"><strong>「当人类文明崩塌<br>表演是唯一的生存方式」</strong></p>
+    </div>
+  </div>
+  <div class="card-footer">BGM: 国风暗黑戏曲腔 remix | 画面: 黑屏闪现赤红大字 → 末世废墟 → 戏台剪影</div>
+</div>
+
+<!-- KF02 -->
+<div class="card">
+  <div class="card-header">
+    <span class="time">5-12s</span>
+    <span class="title">世界观速览 · 灰界入侵</span>
+  </div>
+  <div class="card-body">
+    <img src="kf02_grey_realm.png" alt="灰界克系生物">
+    <div class="copy">
+      <div class="label">配音</div>
+      <p><strong>番茄9.8分，四百万人在读！三九音域继《斩神》后的封神之作——《我不是戏神》！</strong></p>
+      <p style="margin-top:12px;">赤色流星毁灭科技文明，灰界与人类界域重叠。末世废土之下，主角陈伶体内绑定一座神秘戏院——观众期待值，决定他的生死！</p>
+    </div>
+  </div>
+  <div class="card-footer">画面: 灰界诡异生物剪影 / 戏曲脸谱特写交替闪现 | 快切节奏</div>
+</div>
+
+<!-- KF03 -->
+<div class="card">
+  <div class="card-header">
+    <span class="time">12-22s</span>
+    <span class="title">主角登场 · 红帔陈伶</span>
+  </div>
+  <div class="card-body">
+    <img src="kf03_red_robed.png" alt="红帔陈伶">
+    <div class="copy">
+      <div class="label">配音</div>
+      <p>他独走<strong>「戏神道」</strong>。唱念做打化为战斗技能，戏曲选段取材真实曲目。传统文化在废土中杀出一条血路！</p>
+      <p style="margin-top:12px;">红帔时笑时哭，疯批演员型人格——"越看越觉得主角才是反派，好疯好爱！"</p>
+    </div>
+  </div>
+  <div class="card-footer">画面: 主角红帔背影 → 时笑时哭的疯批特写 | "人生如戏，谁的体内没有「观众」？"</div>
+</div>
+
+<!-- KF04 -->
+<div class="card">
+  <div class="card-header">
+    <span class="time">22-32s</span>
+    <span class="title">戏神道战斗 · 水袖化杀招</span>
+  </div>
+  <div class="card-body">
+    <img src="kf04_opera_fight.png" alt="戏曲战斗">
+    <div class="copy">
+      <div class="label">配音</div>
+      <p>十四条神道体系贯穿世界，戏神道独辟蹊径。苏绣、醒狮、戏曲——非遗元素在末世废土中绽放异彩。</p>
+      <p style="margin-top:12px;"><strong>"观众期待值"</strong>的设定神来之笔——社交媒体时代，你体内的「观众」有几位？</p>
+    </div>
+  </div>
+  <div class="card-footer">画面: 水袖变杀招 / 戏曲脸谱战斗画面 / 十四章神道体系概念图</div>
+</div>
+
+<!-- KF05 -->
+<div class="card">
+  <div class="card-header">
+    <span class="time">32-42s</span>
+    <span class="title">悲剧美学 · 泪染脸谱</span>
+  </div>
+  <div class="card-body">
+    <img src="kf05_face_paint.png" alt="脸谱泪痕">
+    <div class="copy">
+      <div class="label">配音</div>
+      <p>但这不只是一部爽文。<strong>宿命感拉满的悲剧美学</strong>，伏笔如蛛网密布，反转层层递进。</p>
+      <p style="margin-top:12px;">陈伶——"伶"既是伶人，也是孤苦伶仃。命不由己的个体，在极致恶中挣扎着维持人性。</p>
+    </div>
+  </div>
+  <div class="card-footer">画面: 流泪脸谱特写 → 陈宴牺牲剪影 → 关键反转闪回</div>
+</div>
+
+<!-- KF06 -->
+<div class="card">
+  <div class="card-header">
+    <span class="time">42-55s</span>
+    <span class="title">升华收尾 · 人类灿若星辰</span>
+  </div>
+  <div class="card-body">
+    <img src="kf06_sacrifice.png" alt="牺牲升华">
+    <div class="copy">
+      <div class="label">配音</div>
+      <p>从一个人的表演，到全人类的觉醒——</p>
+      <p style="font-size:1.2em;color:#e74c3c;margin-top:12px;"><strong>"极光君不是人类的未来，<br>所有人类才是。"</strong></p>
+      <p style="margin-top:12px;">这个时代，人命渺如尘埃；<br>这个时代，人类灿若星辰。</p>
+    </div>
+  </div>
+  <div class="card-footer">画面: 金色光芒洒向废土 → 全员集结意境 → 「人类灿若星辰」大字浮现</div>
+</div>
+
+<!-- CLOSE -->
+<div class="card" style="border-color: #c0392b;">
+  <div class="card-header" style="background: #1c0a0a;">
+    <span class="time">55-60s</span>
+    <span class="title">结尾钩子</span>
+  </div>
+  <div class="card-body" style="justify-content:center; text-align:center; padding:48px 24px;">
+    <div>
+      <p style="font-size:2em; color:#e74c3c; font-weight:900;">《我不是戏神》</p>
+      <p style="font-size:1.3em; color:#ccc; margin-top:16px;">你敢上台吗？</p>
+    </div>
+  </div>
+  <div class="card-footer">黑屏 + 书名 + 钩子文案 | 评论区置顶推荐文案</div>
+</div>
+
+<!-- Summary -->
+<div class="summary-section">
+  <h2>制作信息</h2>
+  <table>
+    <tr><td>总时长</td><td>约 60 秒</td></tr>
+    <tr><td>BGM</td><td>戏曲腔混电子节拍（推荐《赤伶》remix / 国风暗黑系）</td></tr>
+    <tr><td>风格</td><td>快节奏解说 + 氛围画面混剪</td></tr>
+    <tr><td>适用平台</td><td>抖音 / 快手 / 小红书 / B站</td></tr>
+    <tr><td>关键帧</td><td>AI 生成 (Pollinations.ai) — 6 张 1024x576</td></tr>
+    <tr><td>配音</td><td>需人工录制或 TTS（推荐剪映内置配音 / ElevenLabs）</td></tr>
+  </table>
+
+  <h2>推荐文案（评论区/标题）</h2>
+  <div class="copy-text">番茄9.8分神作！三九音域用戏曲炸穿了末世废土——表演即生存，观众即审判。
+《我不是戏神》，看完你会重新理解"人生如戏"四个字。
+#网文推荐 #我不是戏神 #三九音域 #书评 #推书</div>
+</div>
+
+</div>
+</body>
+</html>
