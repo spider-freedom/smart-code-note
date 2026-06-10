@@ -2,7 +2,7 @@
 
 # 📚 Smart Code Note
 
-**AI 驱动的智能学习平台 — 笔记解析 · 题目生成 · 在线练习 · 间隔复习**
+**AI 驱动的智能学习平台 — 笔记解析 · 题目生成 · 在线练习 · 间隔复习 · RAG 检索增强**
 
 [![Vue 3](https://img.shields.io/badge/Vue-3.5-4fc08d?logo=vue.js)](https://vuejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178c6?logo=typescript)](https://www.typescriptlang.org/)
@@ -10,6 +10,7 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-6db33f?logo=springboot)](https://spring.io/)
 [![Java](https://img.shields.io/badge/Java-21-ed8b00?logo=openjdk)](https://openjdk.org/)
 [![DeepSeek](https://img.shields.io/badge/AI-DeepSeek-6366f1)](https://platform.deepseek.com/)
+[![RAG](https://img.shields.io/badge/AI-RAG%20检索增强-8b5cf6)](https://en.wikipedia.org/wiki/Retrieval-augmented_generation)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![WeChat](https://img.shields.io/badge/Mini%20Program-微信小程序-07c160?logo=wechat)](https://developers.weixin.qq.com/miniprogram/)
 
@@ -27,8 +28,9 @@
 |------|------|----------|
 | 📄 **笔记智能解析** | 上传 `.md` / `.txt` 笔记，AI 自动提取并结构化知识点 | SSE 流式输出 |
 | 📝 **题目自动生成** | 基于知识点 AI 生成练习题目（单选/多选/判断/主观） | SSE 流式输出 |
-| 💬 **小码 AI 助手** | 浮动聊天窗口，多轮对话 + Markdown 渲染 + 代码高亮 | SSE + 上下文注入 |
+| 💬 **小码 AI 助手** | 浮动聊天窗口，多轮对话 + Markdown 渲染 + 代码高亮 | SSE + **RAG 检索增强** |
 | 🧠 **智能学习建议** | 首页基于薄弱知识点推荐复习方向 | REST API |
+| 🔍 **RAG 检索增强** | 对话时自动检索相关知识，将笔记/知识点作为上下文注入 LLM | Embeddings + 余弦相似度 |
 
 ### 📖 学习系统
 
@@ -103,7 +105,8 @@
 | **数据库** | MySQL + H2 (测试) | 关系型数据存储 |
 | **认证** | JWT (Auth0 java-jwt) | HMAC256 无状态认证 |
 | **实时通信** | SSE + WebSocket | 流式 AI 输出 + 双向消息 |
-| **AI 模型** | DeepSeek API | OpenAI 兼容的 LLM 接口 |
+| **AI 模型** | DeepSeek API (Chat + Embeddings) | LLM 对话 + 文本向量化 |
+| **RAG 引擎** | ChunkingService + RetrievalService | 中文分块 + 余弦相似度 Top-K 检索 |
 | **测试** | Vitest + JUnit 5 | 前后端全链路测试 |
 
 ## 📐 系统架构
@@ -127,9 +130,14 @@
 │  └──────────┘ └───────────┘ └──────────┘ └──────────┘ └──────────┘  │
 │  ┌──────────┐ ┌───────────┐ ┌──────────┐ ┌──────────────────────┐   │
 │  │ 复习模块  │ │  报告模块  │ │ 聊天模块  │ │  AI 服务 (DeepSeek)  │   │
-│  │ (遗忘曲线)│ │ (ECharts) │ │ (WebSocket│ │  (SSE 流式调用)      │   │
-│  │          │ │           │ │  + SSE)   │ │                      │   │
+│  │ (遗忘曲线)│ │ (ECharts) │ │ (RAG 检索 │ │  (Chat + Embeddings)│   │
+│  │          │ │           │ │  + WebSocket│ │  SSE 流式调用)      │   │
 │  └──────────┘ └───────────┘ └──────────┘ └──────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │                 RAG 检索增强引擎                                │   │
+│  │  ChunkingService → EmbeddingClient → RetrievalService          │   │
+│  │  (中文分块)       (向量化)           (余弦相似度 Top-K)         │   │
+│  └──────────────────────────────────────────────────────────────┘   │
 │                                                                       │
 │              MyBatis-Plus  ←→  MySQL / H2 (测试)                    │
 └──────────────────────────────────────────────────────────────────────┘
@@ -141,7 +149,8 @@
 2. **AI 流式输出** → 前端发起 SSE 请求 → 后端转发至 DeepSeek API → 流式文本通过 `SseEmitter` 逐条推送
 3. **在线练习** → 用户选题作答 → 后端判分 → 错题自动收录 → AI 生成答题反馈
 4. **间隔复习** → 系统根据遗忘曲线计算复习时间 → 推送待复习知识点 → 三档评分调整记忆曲线
-5. **AI 对话** → WebSocket 建立连接 → 后端注入学习上下文 → DeepSeek 生成个性化回复
+5. **AI 对话（RAG）** → 用户提问 → EmbeddingClient 向量化问题 → RetrievalService 检索 Top-K 相关知识点 → RagContextBuilder 构建上下文 → DeepSeek 生成增强回复
+6. **RAG 索引** → 笔记解析/知识点生成后 → ChunkingService 中文分块 → EmbeddingClient 向量化 → 存储至 note_chunk 表 → 供后续检索使用
 
 ## 🗂️ 项目结构
 
@@ -156,7 +165,13 @@ smart-code-note/
 │   │   ├── dto/                      # 42 个数据传输对象
 │   │   ├── entity/                   # 10 个数据库实体
 │   │   ├── exception/                # 全局异常处理
-│   │   ├── mapper/                   # MyBatis-Plus Mapper 接口
+│   │   ├── mapper/                   # MyBatis-Plus Mapper 接口（含 NoteChunkMapper）
+│   │   ├── rag/                      # 🆕 RAG 检索增强引擎
+│   │   │   ├── ChunkingService.java  #   中文文本智能分块
+│   │   │   ├── EmbeddingClient.java  #   DeepSeek Embeddings 向量化
+│   │   │   ├── RetrievalService.java #   余弦相似度 Top-K 检索
+│   │   │   ├── RagContextBuilder.java#   RAG 提示词上下文构建
+│   │   │   └── RagProperties.java    #   RAG 配置属性
 │   │   ├── security/                 # JWT 拦截器 + @CurrentUser 注解
 │   │   ├── service/                  # 业务服务接口 + 实现
 │   │   └── websocket/                # WebSocket 聊天处理器
@@ -356,6 +371,24 @@ Vuex 已进入维护模式。Pinia 支持完整的 TypeScript 类型推导、模
 - **知识点编辑弹窗** — `KnowledgeEditDialog.vue` 在列表页和详情页共享，单一数据源
 - **ECharts 按需加载** — 仅引入 `PieChart`、`BarChart` 及必要组件，全量 `import 'echarts'` 替换为模块级引入
 - **常量统一管理** — `PUBLIC_ROUTES`、`TOKEN_KEY` 等集中在 `constants.ts`
+
+### RAG 检索增强生成
+
+AI 对话采用 **RAG（Retrieval-Augmented Generation）** 架构，解决 LLM"幻觉"和知识时效性问题：
+
+| 阶段 | 组件 | 职责 |
+|------|------|------|
+| **索引** | `ChunkingService` + `EmbeddingClient` | 笔记/知识点自动分块 → DeepSeek Embeddings 向量化 → 存储向量 |
+| **检索** | `RetrievalService` | 用户提问向量化 → 余弦相似度匹配 → Top-K 相关片段 |
+| **生成** | `RagContextBuilder` + DeepSeek Chat | 检索结果注入提示词 → LLM 基于真实知识回答 |
+
+```
+用户提问  →  EmbeddingClient.embed()  →  RetrievalService.search()
+                                                    ↓
+用户 ← LLM 增强回答  ←  RagContextBuilder.build(chunks) → DeepSeek Chat
+```
+
+RAG 在 `application.yml` 中按用户开关，支持配置 Top-K、相似度阈值、分块大小等参数。
 
 ---
 
