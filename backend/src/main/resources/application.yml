@@ -28,7 +28,14 @@ smart-code-note:
       api-key: ${DEEPSEEK_API_KEY:sk-521c5a46d9e34254b4eaa15b2ce92c34}
       base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
       model: ${DEEPSEEK_MODEL:deepseek-chat}
+      embedding-model: ${DEEPSEEK_EMBEDDING_MODEL:deepseek-chat}
       timeout-seconds: 180
+  rag:
+    enabled: true
+    chunk-size: 500
+    chunk-overlap: 100
+    top-k: 5
+    similarity-threshold: 0.6
   wechat:
     app-id: ${WECHAT_APP_ID:}
     app-secret: ${WECHAT_APP_SECRET:}

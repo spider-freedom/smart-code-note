@@ -11,14 +11,21 @@ import com.itheima.smartcodenote.dto.KnowledgeQueryRequest;
 import com.itheima.smartcodenote.dto.UpdateKnowledgeRequest;
 import com.itheima.smartcodenote.entity.KnowledgePoint;
 import com.itheima.smartcodenote.entity.Note;
+import com.itheima.smartcodenote.entity.NoteChunk;
 import com.itheima.smartcodenote.exception.BusinessException;
 import com.itheima.smartcodenote.mapper.KnowledgePointMapper;
+import com.itheima.smartcodenote.mapper.NoteChunkMapper;
 import com.itheima.smartcodenote.mapper.NoteMapper;
+import com.itheima.smartcodenote.rag.EmbeddingClient;
+import com.itheima.smartcodenote.rag.RagProperties;
 import com.itheima.smartcodenote.service.KnowledgeService;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -27,11 +34,15 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RequiredArgsConstructor
 public class KnowledgeServiceImpl implements KnowledgeService {
 
+    private static final Logger log = LoggerFactory.getLogger(KnowledgeServiceImpl.class);
     private static final int DEFAULT_MASTERY_LEVEL = 0;
 
     private final KnowledgePointMapper knowledgePointMapper;
     private final NoteMapper noteMapper;
+    private final NoteChunkMapper noteChunkMapper;
     private final AiService aiService;
+    private final RagProperties ragProperties;
+    private final EmbeddingClient embeddingClient;
 
     @Override
     public PageResponse<KnowledgeListItemResponse> list(Long userId, KnowledgeQueryRequest request) {
@@ -154,6 +165,10 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         knowledgePoint.setUpdateTime(now);
         knowledgePoint.setDeleted(0);
         knowledgePointMapper.insert(knowledgePoint);
+
+        // Async RAG indexing
+        indexKnowledgeAsync(knowledgePoint);
+
         return knowledgePoint;
     }
 
@@ -216,6 +231,36 @@ public class KnowledgeServiceImpl implements KnowledgeService {
 
     private String trimToDefault(String value, String defaultValue) {
         return StringUtils.hasText(value) ? value.trim() : defaultValue;
+    }
+
+    /**
+     * Asynchronously embed and store knowledge point for RAG retrieval.
+     */
+    private void indexKnowledgeAsync(KnowledgePoint knowledgePoint) {
+        if (!ragProperties.isEnabled()) return;
+        if (!StringUtils.hasText(knowledgePoint.getSummary())) return;
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                String text = knowledgePoint.getTitle() + "\n" + knowledgePoint.getSummary();
+                float[] embedding = embeddingClient.embed(text);
+
+                NoteChunk chunk = new NoteChunk();
+                chunk.setUserId(knowledgePoint.getUserId());
+                chunk.setNoteId(knowledgePoint.getNoteId());
+                chunk.setKnowledgeId(knowledgePoint.getId());
+                chunk.setChunkIndex(0);
+                chunk.setContent(text);
+                chunk.setEmbedding(EmbeddingClient.serializeVector(embedding));
+                chunk.setTokenCount(text.length());
+                chunk.setCreateTime(LocalDateTime.now());
+                noteChunkMapper.insert(chunk);
+
+                log.debug("RAG indexed knowledge point {} for user {}", knowledgePoint.getId(), knowledgePoint.getUserId());
+            } catch (Exception e) {
+                log.error("RAG indexing failed for knowledge point {}", knowledgePoint.getId(), e);
+            }
+        });
     }
 
     private void sendSse(SseEmitter emitter, String event, Object data) {

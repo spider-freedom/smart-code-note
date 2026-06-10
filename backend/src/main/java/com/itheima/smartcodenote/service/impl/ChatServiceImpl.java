@@ -12,12 +12,18 @@ import com.itheima.smartcodenote.entity.ChatMessage;
 import com.itheima.smartcodenote.entity.ChatSession;
 import com.itheima.smartcodenote.entity.KnowledgePoint;
 import com.itheima.smartcodenote.entity.Note;
+import com.itheima.smartcodenote.entity.NoteChunk;
 import com.itheima.smartcodenote.exception.BusinessException;
 import com.itheima.smartcodenote.mapper.AnswerRecordMapper;
 import com.itheima.smartcodenote.mapper.ChatMessageMapper;
 import com.itheima.smartcodenote.mapper.ChatSessionMapper;
 import com.itheima.smartcodenote.mapper.KnowledgePointMapper;
+import com.itheima.smartcodenote.mapper.NoteChunkMapper;
 import com.itheima.smartcodenote.mapper.NoteMapper;
+import com.itheima.smartcodenote.rag.EmbeddingClient;
+import com.itheima.smartcodenote.rag.RagContextBuilder;
+import com.itheima.smartcodenote.rag.RagProperties;
+import com.itheima.smartcodenote.rag.RetrievalService;
 import com.itheima.smartcodenote.service.ChatService;
 import java.io.IOException;
 import java.time.LocalDate;
@@ -26,6 +32,8 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -34,18 +42,31 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
+    private static final Logger log = LoggerFactory.getLogger(ChatServiceImpl.class);
+
     private static final String STUDY_BUDDY_PROMPT = """
             你叫「小码」，是一位编程学习伙伴。你性格开朗、有耐心，擅长用简单易懂的方式讲解技术概念。
             你会主动关心用户的学习进度，在他遇到困难时给予鼓励，在他取得进步时真心为他高兴。
             你可以用技术知识回答问题，也可以用朋友的口吻聊聊天、给建议。
             你的回复简洁、温暖，像好朋友之间的对话。回复控制在150字以内。""";
 
+    private static final String RAG_INSTRUCTION = """
+
+            请优先基于[参考学习资料]中的内容回答用户问题。
+            如果参考资料中包含相关信息，请引用具体内容。
+            如果参考资料中没有相关信息，再结合你的技术知识回答，并说明"这部分内容在你的笔记中暂时没有找到"。""";
+
     private final ChatSessionMapper sessionMapper;
     private final ChatMessageMapper messageMapper;
     private final NoteMapper noteMapper;
     private final KnowledgePointMapper knowledgePointMapper;
     private final AnswerRecordMapper answerRecordMapper;
+    private final NoteChunkMapper noteChunkMapper;
     private final AiService aiService;
+    private final RagProperties ragProperties;
+    private final EmbeddingClient embeddingClient;
+    private final RetrievalService retrievalService;
+    private final RagContextBuilder ragContextBuilder;
 
     @Override
     public List<ChatSessionListItem> listSessions(Long userId) {
@@ -133,7 +154,24 @@ public class ChatServiceImpl implements ChatService {
                 .collect(Collectors.joining("\n"));
 
         String contextText = buildLearningContextText(userId);
-        String systemPrompt = STUDY_BUDDY_PROMPT + "\n" + contextText;
+
+        // ── RAG: Retrieve relevant note content ──
+        String ragText = "";
+        if (ragProperties.isEnabled()) {
+            try {
+                ragText = retrieveRagContext(userId, request.getMessage());
+            } catch (Exception e) {
+                log.warn("RAG retrieval failed for userId={}: {}", userId, e.getMessage());
+                // Fall through — chat still works without RAG
+            }
+        }
+
+        String systemPrompt;
+        if (!ragText.isEmpty()) {
+            systemPrompt = STUDY_BUDDY_PROMPT + "\n\n" + ragText + "\n" + contextText + RAG_INSTRUCTION;
+        } else {
+            systemPrompt = STUDY_BUDDY_PROMPT + "\n" + contextText;
+        }
         String userPrompt = historyText + "\n用户：" + request.getMessage();
 
         final Long finalSessionId = sessionId;
@@ -243,6 +281,32 @@ public class ChatServiceImpl implements ChatService {
         }
 
         return sb.toString();
+    }
+
+    /**
+     * Retrieve relevant note chunks via RAG for the user's question.
+     */
+    private String retrieveRagContext(Long userId, String userMessage) {
+        List<NoteChunk> allChunks = noteChunkMapper.selectList(
+                new LambdaQueryWrapper<NoteChunk>()
+                        .eq(NoteChunk::getUserId, userId));
+
+        if (allChunks.isEmpty()) {
+            log.debug("No note chunks found for userId={}", userId);
+            return "";
+        }
+
+        float[] queryVector = embeddingClient.embed(userMessage);
+        List<RetrievalService.ScoredChunk> scored = retrievalService.search(queryVector, allChunks);
+
+        if (scored.isEmpty()) {
+            log.debug("No relevant chunks found for query (threshold={})",
+                    ragProperties.getSimilarityThreshold());
+            return "";
+        }
+
+        ChatLearningContext ctx = getLearningContext(userId);
+        return ragContextBuilder.buildContext(scored, ctx);
     }
 
     private ChatMessageResponse toMessageResponse(ChatMessage message) {

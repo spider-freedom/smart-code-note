@@ -138,3 +138,17 @@ CREATE TABLE IF NOT EXISTS review_record (
     INDEX idx_review_user_id (user_id),
     INDEX idx_review_knowledge_id (knowledge_id)
 );
+
+CREATE TABLE IF NOT EXISTS note_chunk (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    note_id BIGINT NOT NULL,
+    knowledge_id BIGINT,
+    chunk_index INT NOT NULL,
+    content TEXT NOT NULL,
+    embedding MEDIUMBLOB NOT NULL,
+    token_count INT DEFAULT 0,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_note_chunk_user_id (user_id),
+    INDEX idx_note_chunk_note_id (note_id)
+);

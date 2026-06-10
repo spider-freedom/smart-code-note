@@ -86,7 +86,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        Thread.ofVirtual().start(() -> {
+        new Thread(() -> {
             try {
                 chatService.sendMessageStream(userId, request,
                         chunk -> sendMessage(session, "chunk", chunk),

@@ -53,7 +53,7 @@ public class ChatController {
         SseEmitter emitter = new SseEmitter(300_000L);
         Long userId = CurrentUser.getUserId();
 
-        Thread.ofVirtual().start(() -> {
+        new Thread(() -> {
             try {
                 chatService.sendMessageStream(userId, request, emitter);
             } catch (Exception e) {

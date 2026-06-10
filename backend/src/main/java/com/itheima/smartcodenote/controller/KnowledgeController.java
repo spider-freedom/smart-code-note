@@ -65,7 +65,7 @@ public class KnowledgeController {
         SseEmitter emitter = new SseEmitter(300_000L);
         Long userId = CurrentUser.getUserId();
 
-        Thread.ofVirtual().start(() -> {
+        new Thread(() -> {
             try {
                 knowledgeService.generateStream(userId, request, emitter);
             } catch (Exception e) {

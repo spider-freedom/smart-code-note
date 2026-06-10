@@ -75,6 +75,16 @@ public class MockAiService implements AiService {
         return new AiScore(score, comment);
     }
 
+    @Override
+    public float[] embed(String text) {
+        throw new UnsupportedOperationException("Embedding requires DeepSeek API. MockAiService does not support embeddings.");
+    }
+
+    @Override
+    public List<float[]> embedBatch(List<String> texts) {
+        throw new UnsupportedOperationException("Embedding requires DeepSeek API. MockAiService does not support embeddings.");
+    }
+
     private GeneratedQuestion buildSingleChoiceQuestion(String title, String summary) {
         return new GeneratedQuestion(
                 "single_choice",

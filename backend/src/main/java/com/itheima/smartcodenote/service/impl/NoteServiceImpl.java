@@ -10,8 +10,13 @@ import com.itheima.smartcodenote.dto.NoteQueryRequest;
 import com.itheima.smartcodenote.dto.NoteUploadResponse;
 import com.itheima.smartcodenote.dto.NoteUploadTextRequest;
 import com.itheima.smartcodenote.entity.Note;
+import com.itheima.smartcodenote.entity.NoteChunk;
 import com.itheima.smartcodenote.exception.BusinessException;
+import com.itheima.smartcodenote.mapper.NoteChunkMapper;
 import com.itheima.smartcodenote.mapper.NoteMapper;
+import com.itheima.smartcodenote.rag.ChunkingService;
+import com.itheima.smartcodenote.rag.EmbeddingClient;
+import com.itheima.smartcodenote.rag.RagProperties;
 import com.itheima.smartcodenote.service.NoteParserService;
 import com.itheima.smartcodenote.service.NoteService;
 import java.io.IOException;
@@ -19,8 +24,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,11 +38,16 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class NoteServiceImpl implements NoteService {
 
+    private static final Logger log = LoggerFactory.getLogger(NoteServiceImpl.class);
     private static final int PARSE_SUCCESS = 1;
 
     private final NoteMapper noteMapper;
+    private final NoteChunkMapper noteChunkMapper;
     private final NoteParserService noteParserService;
     private final FileStorageProperties fileStorageProperties;
+    private final RagProperties ragProperties;
+    private final ChunkingService chunkingService;
+    private final EmbeddingClient embeddingClient;
 
     @Override
     public NoteUploadResponse uploadText(Long userId, NoteUploadTextRequest request) {
@@ -54,6 +68,9 @@ public class NoteServiceImpl implements NoteService {
         note.setUpdateTime(now);
         note.setDeleted(0);
         noteMapper.insert(note);
+
+        // Async RAG indexing
+        indexNoteAsync(note);
 
         return NoteUploadResponse.builder()
                 .id(note.getId())
@@ -88,6 +105,9 @@ public class NoteServiceImpl implements NoteService {
         note.setUpdateTime(now);
         note.setDeleted(0);
         noteMapper.insert(note);
+
+        // Async RAG indexing
+        indexNoteAsync(note);
 
         return NoteUploadResponse.builder()
                 .id(note.getId())
@@ -139,7 +159,52 @@ public class NoteServiceImpl implements NoteService {
         note.setParseStatus(PARSE_SUCCESS);
         note.setUpdateTime(LocalDateTime.now());
         noteMapper.updateById(note);
+
+        // Async RAG re-indexing
+        indexNoteAsync(note);
+
         return toDetail(note);
+    }
+
+    /**
+     * Asynchronously chunk, embed, and store note content for RAG retrieval.
+     */
+    private void indexNoteAsync(Note note) {
+        if (!ragProperties.isEnabled()) return;
+        if (!StringUtils.hasText(note.getCleanContent())) return;
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                // Delete old chunks for this note
+                noteChunkMapper.deleteByNoteId(note.getId());
+
+                List<String> chunks = chunkingService.chunk(note.getCleanContent());
+                if (chunks.isEmpty()) return;
+
+                List<float[]> embeddings = embeddingClient.embedBatch(chunks);
+                if (embeddings.size() != chunks.size()) {
+                    log.warn("Embedding count mismatch: chunks={}, embeddings={}", chunks.size(), embeddings.size());
+                    return;
+                }
+
+                LocalDateTime now = LocalDateTime.now();
+                for (int i = 0; i < chunks.size(); i++) {
+                    NoteChunk noteChunk = new NoteChunk();
+                    noteChunk.setUserId(note.getUserId());
+                    noteChunk.setNoteId(note.getId());
+                    noteChunk.setChunkIndex(i);
+                    noteChunk.setContent(chunks.get(i));
+                    noteChunk.setEmbedding(EmbeddingClient.serializeVector(embeddings.get(i)));
+                    noteChunk.setTokenCount(chunks.get(i).length());
+                    noteChunk.setCreateTime(now);
+                    noteChunkMapper.insert(noteChunk);
+                }
+
+                log.info("RAG indexed {} chunks for note {} (user={})", chunks.size(), note.getId(), note.getUserId());
+            } catch (Exception e) {
+                log.error("RAG indexing failed for note {}", note.getId(), e);
+            }
+        });
     }
 
     private String saveFile(MultipartFile file, String fileType) {

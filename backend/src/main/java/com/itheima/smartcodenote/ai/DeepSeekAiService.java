@@ -464,6 +464,73 @@ public class DeepSeekAiService implements AiService {
         }
     }
 
+    // ── Embedding ──────────────────────────────────────────────────────────
+
+    @Override
+    public float[] embed(String text) {
+        List<float[]> results = embedBatch(List.of(text));
+        if (results.isEmpty()) {
+            throw new RuntimeException("Embedding API returned no results");
+        }
+        return results.get(0);
+    }
+
+    @Override
+    public List<float[]> embedBatch(List<String> texts) {
+        if (texts == null || texts.isEmpty()) {
+            return List.of();
+        }
+
+        try {
+            var body = new java.util.LinkedHashMap<String, Object>();
+            body.put("model", properties.getEmbeddingModel());
+            body.put("input", texts);
+            String requestBody = objectMapper.writeValueAsString(body);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(properties.getBaseUrl() + "/v1/embeddings"))
+                    .header("Authorization", "Bearer " + properties.getApiKey())
+                    .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(properties.getTimeoutSeconds()))
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                String errorMsg = extractErrorMessage(response.body());
+                log.error("Embedding API error ({}): {}", response.statusCode(), errorMsg);
+                throw new RuntimeException("Embedding API call failed: " + errorMsg);
+            }
+
+            JsonNode root = objectMapper.readTree(response.body());
+            JsonNode data = root.get("data");
+            if (data == null || !data.isArray()) {
+                throw new RuntimeException("Embedding API returned unexpected format");
+            }
+
+            List<float[]> embeddings = new ArrayList<>();
+            for (JsonNode item : data) {
+                JsonNode embeddingNode = item.get("embedding");
+                if (embeddingNode == null || !embeddingNode.isArray()) continue;
+
+                float[] vector = new float[embeddingNode.size()];
+                for (int i = 0; i < embeddingNode.size(); i++) {
+                    vector[i] = (float) embeddingNode.get(i).asDouble();
+                }
+                embeddings.add(vector);
+            }
+
+            log.debug("Generated {} embeddings via model {}", embeddings.size(), properties.getEmbeddingModel());
+            return embeddings;
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            log.error("Embedding API request failed", e);
+            throw new RuntimeException("Embedding API request failed: " + e.getMessage(), e);
+        }
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────
 
     private static String truncate(String content, int maxChars) {

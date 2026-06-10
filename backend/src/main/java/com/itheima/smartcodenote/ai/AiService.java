@@ -71,4 +71,18 @@ public interface AiService {
 
     record AiScore(int score, String comment) {
     }
+
+    /**
+     * Generate an embedding vector for a text.
+     */
+    default float[] embed(String text) {
+        throw new UnsupportedOperationException("Embedding not supported by this AI service");
+    }
+
+    /**
+     * Generate embedding vectors for multiple texts in batch.
+     */
+    default List<float[]> embedBatch(List<String> texts) {
+        throw new UnsupportedOperationException("Batch embedding not supported by this AI service");
+    }
 }

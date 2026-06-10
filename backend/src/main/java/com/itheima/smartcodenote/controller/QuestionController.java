@@ -40,7 +40,7 @@ public class QuestionController {
         SseEmitter emitter = new SseEmitter(300_000L);
         Long userId = CurrentUser.getUserId();
 
-        Thread.ofVirtual().start(() -> {
+        new Thread(() -> {
             try {
                 questionService.generateStream(userId, request, emitter);
             } catch (Exception e) {
