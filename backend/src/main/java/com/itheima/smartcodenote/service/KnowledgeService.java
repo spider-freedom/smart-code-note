@@ -19,6 +19,8 @@ public interface KnowledgeService {
 
     void delete(Long userId, Long knowledgeId);
 
+    int batchDelete(Long userId, List<Long> knowledgeIds);
+
     List<KnowledgeDetailResponse> generate(Long userId, GenerateKnowledgeRequest request);
 
     void generateStream(Long userId, GenerateKnowledgeRequest request, SseEmitter emitter);

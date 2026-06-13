@@ -56,6 +56,12 @@ public class KnowledgeController {
         return Result.success();
     }
 
+    @DeleteMapping("/batch")
+    public Result<Integer> batchDelete(@RequestBody @jakarta.validation.constraints.Size(min = 1, max = 100) List<Long> ids) {
+        int count = knowledgeService.batchDelete(CurrentUser.getUserId(), ids);
+        return Result.success(count);
+    }
+
     @RateLimit(permits = 10, message = "AI 知识点生成过于频繁，请稍后重试")
     @PostMapping("/generate")
     public Result<List<KnowledgeDetailResponse>> generate(@Valid @RequestBody GenerateKnowledgeRequest request) {

@@ -99,6 +99,23 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     }
 
     @Override
+    public int batchDelete(Long userId, List<Long> knowledgeIds) {
+        if (knowledgeIds == null || knowledgeIds.isEmpty()) {
+            return 0;
+        }
+        // Batch verify ownership: only delete records owned by this user
+        List<KnowledgePoint> points = knowledgePointMapper.selectBatchIds(knowledgeIds);
+        List<Long> ownedIds = points.stream()
+                .filter(k -> k.getUserId().equals(userId))
+                .map(KnowledgePoint::getId)
+                .toList();
+        if (ownedIds.isEmpty()) {
+            return 0;
+        }
+        return knowledgePointMapper.deleteBatchIds(ownedIds);
+    }
+
+    @Override
     public List<KnowledgeDetailResponse> generate(Long userId, GenerateKnowledgeRequest request) {
         Note note = requireOwnedNote(userId, request.getNoteId());
         List<AiService.GeneratedKnowledgePoint> generatedPoints =

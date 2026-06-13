@@ -6,6 +6,7 @@ import com.itheima.smartcodenote.dto.NoteListItemResponse;
 import com.itheima.smartcodenote.dto.NoteQueryRequest;
 import com.itheima.smartcodenote.dto.NoteUploadResponse;
 import com.itheima.smartcodenote.dto.NoteUploadTextRequest;
+import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface NoteService {
@@ -19,6 +20,11 @@ public interface NoteService {
     NoteDetailResponse detail(Long userId, Long noteId);
 
     void delete(Long userId, Long noteId);
+
+    /**
+     * Batch delete notes owned by user. Returns count of actually deleted rows.
+     */
+    int batchDelete(Long userId, List<Long> noteIds);
 
     NoteDetailResponse reparse(Long userId, Long noteId);
 }

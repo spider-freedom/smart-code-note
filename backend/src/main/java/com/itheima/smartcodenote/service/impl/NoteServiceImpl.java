@@ -149,6 +149,24 @@ public class NoteServiceImpl implements NoteService {
     }
 
     @Override
+    public int batchDelete(Long userId, List<Long> noteIds) {
+        if (noteIds == null || noteIds.isEmpty()) {
+            return 0;
+        }
+        // Verify ownership: only delete notes owned by this user
+        List<Note> notes = noteMapper.selectBatchIds(noteIds);
+        List<Long> ownedIds = notes.stream()
+                .filter(n -> n.getUserId().equals(userId))
+                .map(Note::getId)
+                .toList();
+        if (ownedIds.isEmpty()) {
+            return 0;
+        }
+        // MyBatis-Plus deleteBatchIds generates DELETE ... WHERE id IN (...)
+        return noteMapper.deleteBatchIds(ownedIds);
+    }
+
+    @Override
     public NoteDetailResponse reparse(Long userId, Long noteId) {
         Note note = requireOwnedNote(userId, noteId);
         byte[] bytes = readOriginalBytes(note);

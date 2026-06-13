@@ -14,6 +14,8 @@ import com.itheima.smartcodenote.security.CurrentUser;
 import com.itheima.smartcodenote.service.NoteAsyncService;
 import com.itheima.smartcodenote.service.NoteService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -102,5 +104,16 @@ public class NoteController {
         // Re-submit async AI task for re-parse
         noteAsyncService.submitTask(CurrentUser.getUserId(), id);
         return Result.success(response);
+    }
+
+    /**
+     * Batch delete notes. Uses single DELETE ... WHERE id IN (...) to reduce DB round-trips.
+     */
+    @DeleteMapping("/batch")
+    public Result<Integer> batchDelete(
+            @RequestBody @Size(min = 1, max = 100, message = "单次批量删除须在 1-100 条之间")
+            List<Long> ids) {
+        int count = noteService.batchDelete(CurrentUser.getUserId(), ids);
+        return Result.success(count);
     }
 }
