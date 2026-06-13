@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ElMessage,
@@ -13,7 +13,7 @@ import {
 } from 'element-plus'
 import { Delete, Refresh, Search, Upload, UploadFilled } from '@element-plus/icons-vue'
 import { noteApi } from '@/api/note'
-import type { NoteListItem } from '@/types/note'
+import type { NoteListItem, ParseStatusResponse } from '@/types/note'
 
 const router = useRouter()
 const route = useRoute()
@@ -21,6 +21,10 @@ const loading = ref(false)
 const reparsingId = ref<number | null>(null)
 const deletingId = ref<number | null>(null)
 const notes = ref<NoteListItem[]>([])
+
+/** Track per-note AI parse status (async task polling) */
+const parseStatuses = ref<Record<number, ParseStatusResponse>>({})
+const parsePollTimers = ref<Record<number, ReturnType<typeof setInterval>>>({})
 const total = ref(0)
 
 const query = reactive({
@@ -87,6 +91,42 @@ const openUpload = () => {
   uploadVisible.value = true
 }
 
+/**
+ * Poll AI parse task status for a note.
+ * Stops when status is COMPLETED, FAILED, or after 5 minutes (150 polls * 2s).
+ */
+const startParsePolling = (noteId: number) => {
+  stopParsePolling(noteId)
+  let polls = 0
+
+  const timer = setInterval(async () => {
+    polls++
+    try {
+      const status = await noteApi.getParseStatus(noteId)
+      parseStatuses.value[noteId] = status
+
+      if (status.status === 'COMPLETED' || status.status === 'FAILED' || polls > 150) {
+        stopParsePolling(noteId)
+        if (status.status === 'COMPLETED') {
+          ElMessage.success(`AI 解析完成：${status.knowledgeCount} 个知识点，${status.questionCount} 道题目`)
+          loadNotes()
+        } else if (status.status === 'FAILED') {
+          ElMessage.warning(`AI 解析失败：${status.errorMessage || '未知错误'}`)
+        }
+      }
+    } catch {
+      // Ignore polling errors, retry next interval
+    }
+  }, 2000)
+
+  parsePollTimers.value[noteId] = timer
+}
+
+const stopParsePolling = (noteId: number) => {
+  const timer = parsePollTimers.value[noteId]
+  if (timer) { clearInterval(timer); delete parsePollTimers.value[noteId] }
+}
+
 const submitUpload = async () => {
   if (!formRef.value) return
   const valid = await formRef.value.validate().catch(() => false)
@@ -101,16 +141,40 @@ const submitUpload = async () => {
       category: form.category || undefined,
       tags: form.tags || undefined,
     })
-    ElMessage.success('笔记上传成功')
+    ElMessage.success('笔记上传成功，AI 正在后台解析...')
     uploadVisible.value = false
-    router.push(`/notes/${result.id}`)
+    loadNotes()
+
+    // Start polling for async AI parse status
+    if (result.taskId) {
+      parseStatuses.value[result.id] = { status: 'PENDING', knowledgeCount: 0, questionCount: 0, errorMessage: null }
+      startParsePolling(result.id)
+    }
   } finally {
     uploadLoading.value = false
   }
 }
 
-const parseStatusText = (status: number) => (status === 1 ? '解析成功' : '待处理')
-const parseStatusType = (status: number) => (status === 1 ? 'success' : 'warning')
+const parseStatusText = (row: NoteListItem) => {
+  const asyncStatus = parseStatuses.value[row.id]
+  if (asyncStatus) {
+    const map: Record<string, string> = {
+      PENDING: 'AI 排队中', PROCESSING: 'AI 解析中', COMPLETED: '已完成', FAILED: '解析失败',
+    }
+    return map[asyncStatus.status] || asyncStatus.status
+  }
+  return row.parseStatus === 1 ? '解析成功' : '待处理'
+}
+const parseStatusType = (row: NoteListItem) => {
+  const asyncStatus = parseStatuses.value[row.id]
+  if (asyncStatus) {
+    if (asyncStatus.status === 'COMPLETED') return 'success'
+    if (asyncStatus.status === 'FAILED') return 'danger'
+    if (asyncStatus.status === 'PROCESSING') return 'warning'
+    return 'info'
+  }
+  return row.parseStatus === 1 ? 'success' : 'warning'
+}
 
 const loadNotes = async () => {
   loading.value = true
@@ -173,6 +237,11 @@ onMounted(() => {
   query.category = (route.query.category as string) || ''
   loadNotes()
 })
+
+onBeforeUnmount(() => {
+  // Clean up all active polling timers
+  Object.keys(parsePollTimers.value).forEach(id => stopParsePolling(Number(id)))
+})
 </script>
 
 <template>
@@ -211,9 +280,14 @@ onMounted(() => {
         <template #default="{ row }">{{ row.tags || '-' }}</template>
       </el-table-column>
       <el-table-column prop="fileType" label="类型" width="90" />
-      <el-table-column prop="parseStatus" label="解析状态" width="110">
+      <el-table-column prop="parseStatus" label="AI 解析状态" width="140">
         <template #default="{ row }">
-          <el-tag :type="parseStatusType(row.parseStatus)">{{ parseStatusText(row.parseStatus) }}</el-tag>
+          <el-tag :type="parseStatusType(row)" size="small">
+            {{ parseStatusText(row) }}
+            <template v-if="parseStatuses[row.id]?.status === 'COMPLETED'">
+              ({{ parseStatuses[row.id].knowledgeCount }}知识点/{{ parseStatuses[row.id].questionCount }}题)
+            </template>
+          </el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="createTime" label="上传时间" min-width="170" />

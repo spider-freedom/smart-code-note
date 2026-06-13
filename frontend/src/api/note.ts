@@ -1,6 +1,6 @@
 import request from '@/utils/request'
 import type { ApiResult, PageResponse } from '@/types/api'
-import type { NoteDetail, NoteListItem, NoteQuery, NoteUploadPayload, NoteUploadResponse } from '@/types/note'
+import type { NoteDetail, NoteListItem, NoteQuery, NoteUploadPayload, NoteUploadResponse, ParseStatusResponse } from '@/types/note'
 
 export const noteApi = {
   async upload(payload: NoteUploadPayload) {
@@ -20,6 +20,12 @@ export const noteApi = {
     return response.data.data
   },
 
+  /** Poll AI parse task status. Call every 2s until COMPLETED or FAILED. */
+  async getParseStatus(noteId: number): Promise<ParseStatusResponse> {
+    const response = await request.get<ApiResult<ParseStatusResponse>>(`/note/${noteId}/parse-status`)
+    return response.data.data
+  },
+
   async list(params: NoteQuery) {
     const response = await request.get<ApiResult<PageResponse<NoteListItem>>>('/note/list', { params })
     return response.data.data
@@ -32,6 +38,12 @@ export const noteApi = {
 
   async delete(id: number | string) {
     await request.delete<ApiResult<null>>(`/note/${id}`)
+  },
+
+  /** Batch delete notes. Returns count of deleted notes. */
+  async batchDelete(ids: number[]): Promise<number> {
+    const response = await request.delete<ApiResult<number>>('/note/batch', { data: ids })
+    return response.data.data
   },
 
   async reparse(id: number | string) {

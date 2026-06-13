@@ -29,6 +29,11 @@ export const knowledgeApi = {
     await request.delete<ApiResult<null>>(`/knowledge/${id}`)
   },
 
+  async batchDelete(ids: number[]): Promise<number> {
+    const response = await request.delete<ApiResult<number>>('/knowledge/batch', { data: ids })
+    return response.data.data
+  },
+
   async generate(data: GenerateKnowledgeRequest) {
     const response = await request.post<ApiResult<KnowledgeDetail[]>>('/knowledge/generate', data)
     return response.data.data

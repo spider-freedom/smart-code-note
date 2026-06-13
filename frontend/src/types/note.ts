@@ -1,10 +1,18 @@
 export interface NoteUploadResponse {
   id: number
+  taskId: number  // Async AI parse task ID — poll GET /api/note/{id}/parse-status
   title: string
   fileType: string
   parseStatus: number
   originalLength: number
   cleanLength: number
+}
+
+export interface ParseStatusResponse {
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'NOT_FOUND'
+  knowledgeCount: number
+  questionCount: number
+  errorMessage: string | null
 }
 
 export interface NoteListItem {
