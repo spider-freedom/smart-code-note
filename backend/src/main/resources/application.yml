@@ -3,17 +3,16 @@ spring:
     name: smart-code-note
   profiles:
     active: dev
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  cache:
+    type: redis
 
 server:
   port: 8080
   shutdown: graceful
   tomcat:
-    # Keep connections alive during grace period for in-flight requests
     connection-timeout: 30000
-
-spring:
-  lifecycle:
-    timeout-per-shutdown-phase: 20s
 
 mybatis-plus:
   configuration:
