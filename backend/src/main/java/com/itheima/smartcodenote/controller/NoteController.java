@@ -1,6 +1,7 @@
 package com.itheima.smartcodenote.controller;
 
 import com.itheima.smartcodenote.common.PageResponse;
+import com.itheima.smartcodenote.common.RateLimit;
 import com.itheima.smartcodenote.common.Result;
 import com.itheima.smartcodenote.dto.NoteDetailResponse;
 import com.itheima.smartcodenote.dto.NoteListItemResponse;
@@ -34,6 +35,7 @@ public class NoteController {
     private final NoteService noteService;
     private final NoteAsyncService noteAsyncService;
 
+    @RateLimit(permits = 20, message = "上传过于频繁，请稍后重试")
     @PostMapping("/upload")
     public Result<NoteUploadResponse> upload(
             @RequestParam("file") MultipartFile file,

@@ -1,6 +1,7 @@
 package com.itheima.smartcodenote.controller;
 
 import com.itheima.smartcodenote.common.PageResponse;
+import com.itheima.smartcodenote.common.RateLimit;
 import com.itheima.smartcodenote.common.Result;
 import com.itheima.smartcodenote.dto.GenerateQuestionRequest;
 import com.itheima.smartcodenote.dto.QuestionDetailResponse;
@@ -30,6 +31,7 @@ public class QuestionController {
 
     private final QuestionService questionService;
 
+    @RateLimit(permits = 10, message = "AI 题目生成过于频繁，请稍后重试")
     @PostMapping("/generate")
     public Result<List<QuestionDetailResponse>> generate(@Valid @RequestBody GenerateQuestionRequest request) {
         return Result.success(questionService.generate(CurrentUser.getUserId(), request));

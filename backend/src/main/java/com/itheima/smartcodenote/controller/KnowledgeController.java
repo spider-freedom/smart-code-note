@@ -1,6 +1,7 @@
 package com.itheima.smartcodenote.controller;
 
 import com.itheima.smartcodenote.common.PageResponse;
+import com.itheima.smartcodenote.common.RateLimit;
 import com.itheima.smartcodenote.common.Result;
 import com.itheima.smartcodenote.dto.GenerateKnowledgeRequest;
 import com.itheima.smartcodenote.dto.KnowledgeDetailResponse;
@@ -55,11 +56,13 @@ public class KnowledgeController {
         return Result.success();
     }
 
+    @RateLimit(permits = 10, message = "AI 知识点生成过于频繁，请稍后重试")
     @PostMapping("/generate")
     public Result<List<KnowledgeDetailResponse>> generate(@Valid @RequestBody GenerateKnowledgeRequest request) {
         return Result.success(knowledgeService.generate(CurrentUser.getUserId(), request));
     }
 
+    @RateLimit(permits = 10, message = "AI 知识点生成过于频繁，请稍后重试")
     @GetMapping(value = "/generate-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter generateStream(@Valid GenerateKnowledgeRequest request) {
         SseEmitter emitter = new SseEmitter(300_000L);
