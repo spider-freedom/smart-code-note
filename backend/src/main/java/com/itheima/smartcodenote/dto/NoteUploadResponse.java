@@ -8,6 +8,7 @@ import lombok.Data;
 public class NoteUploadResponse {
 
     private Long id;
+    private Long taskId;
     private String title;
     private String fileType;
     private Integer parseStatus;

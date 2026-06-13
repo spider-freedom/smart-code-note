@@ -139,6 +139,20 @@ CREATE TABLE IF NOT EXISTS review_record (
     INDEX idx_review_knowledge_id (knowledge_id)
 );
 
+CREATE TABLE IF NOT EXISTS note_parse_task (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    note_id BIGINT NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING|PROCESSING|COMPLETED|FAILED',
+    error_message VARCHAR(500),
+    knowledge_count INT DEFAULT 0,
+    question_count INT DEFAULT 0,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_npt_note_id (note_id),
+    INDEX idx_npt_user_id (user_id)
+);
+
 CREATE TABLE IF NOT EXISTS note_chunk (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     user_id BIGINT NOT NULL,

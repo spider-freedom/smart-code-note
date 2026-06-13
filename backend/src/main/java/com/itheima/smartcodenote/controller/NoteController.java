@@ -7,7 +7,10 @@ import com.itheima.smartcodenote.dto.NoteListItemResponse;
 import com.itheima.smartcodenote.dto.NoteQueryRequest;
 import com.itheima.smartcodenote.dto.NoteUploadResponse;
 import com.itheima.smartcodenote.dto.NoteUploadTextRequest;
+import com.itheima.smartcodenote.dto.ParseStatusResponse;
+import com.itheima.smartcodenote.entity.NoteParseTask;
 import com.itheima.smartcodenote.security.CurrentUser;
+import com.itheima.smartcodenote.service.NoteAsyncService;
 import com.itheima.smartcodenote.service.NoteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class NoteController {
 
     private final NoteService noteService;
+    private final NoteAsyncService noteAsyncService;
 
     @PostMapping("/upload")
     public Result<NoteUploadResponse> upload(
@@ -36,12 +40,42 @@ public class NoteController {
             @RequestParam("title") String title,
             @RequestParam(value = "category", required = false) String category,
             @RequestParam(value = "tags", required = false) String tags) {
-        return Result.success(noteService.upload(CurrentUser.getUserId(), file, title, category, tags));
+        NoteUploadResponse response = noteService.upload(CurrentUser.getUserId(), file, title, category, tags);
+        // Submit async AI parsing — returns immediately
+        NoteParseTask task = noteAsyncService.submitTask(CurrentUser.getUserId(), response.getId());
+        response.setTaskId(task.getId());
+        return Result.success(response);
     }
 
     @PostMapping("/upload-text")
     public Result<NoteUploadResponse> uploadText(@Valid @RequestBody NoteUploadTextRequest request) {
-        return Result.success(noteService.uploadText(CurrentUser.getUserId(), request));
+        NoteUploadResponse response = noteService.uploadText(CurrentUser.getUserId(), request);
+        // Submit async AI parsing — returns immediately
+        NoteParseTask task = noteAsyncService.submitTask(CurrentUser.getUserId(), response.getId());
+        response.setTaskId(task.getId());
+        return Result.success(response);
+    }
+
+    /**
+     * Poll async AI parse task status.
+     * Frontend calls this every 2 seconds until status is COMPLETED or FAILED.
+     */
+    @GetMapping("/{id}/parse-status")
+    public Result<ParseStatusResponse> getParseStatus(@PathVariable Long id) {
+        NoteParseTask task = noteAsyncService.getTaskStatus(id);
+        if (task == null) {
+            return Result.success(ParseStatusResponse.builder()
+                    .status("NOT_FOUND")
+                    .knowledgeCount(0)
+                    .questionCount(0)
+                    .build());
+        }
+        return Result.success(ParseStatusResponse.builder()
+                .status(task.getStatus())
+                .knowledgeCount(task.getKnowledgeCount() != null ? task.getKnowledgeCount() : 0)
+                .questionCount(task.getQuestionCount() != null ? task.getQuestionCount() : 0)
+                .errorMessage(task.getErrorMessage())
+                .build());
     }
 
     @GetMapping("/list")
@@ -62,6 +96,9 @@ public class NoteController {
 
     @PostMapping("/{id}/parse")
     public Result<NoteDetailResponse> parse(@PathVariable Long id) {
-        return Result.success(noteService.reparse(CurrentUser.getUserId(), id));
+        NoteDetailResponse response = noteService.reparse(CurrentUser.getUserId(), id);
+        // Re-submit async AI task for re-parse
+        noteAsyncService.submitTask(CurrentUser.getUserId(), id);
+        return Result.success(response);
     }
 }
