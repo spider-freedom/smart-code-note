@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -37,6 +38,7 @@ public class ReportServiceImpl implements ReportService {
     private final WrongQuestionMapper wrongQuestionMapper;
 
     @Override
+    @Cacheable(value = "learning-overview", key = "#userId")
     public LearningOverviewResponse overview(Long userId) {
         List<KnowledgePoint> knowledgePoints = selectKnowledgePoints(userId);
         List<AnswerRecord> answers = selectAnswers(userId);

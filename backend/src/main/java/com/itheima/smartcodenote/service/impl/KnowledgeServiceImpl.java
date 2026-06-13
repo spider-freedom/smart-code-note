@@ -26,6 +26,8 @@ import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -45,6 +47,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     private final EmbeddingClient embeddingClient;
 
     @Override
+    @Cacheable(value = "knowledge-list", key = "#userId + ':' + #request.noteId + ':' + #request.pageNum")
     public PageResponse<KnowledgeListItemResponse> list(Long userId, KnowledgeQueryRequest request) {
         LambdaQueryWrapper<KnowledgePoint> wrapper = new LambdaQueryWrapper<KnowledgePoint>()
                 .eq(KnowledgePoint::getUserId, userId)
@@ -73,6 +76,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     }
 
     @Override
+    @CacheEvict(value = "knowledge-list", allEntries = true)
     public KnowledgeDetailResponse update(Long userId, Long knowledgeId, UpdateKnowledgeRequest request) {
         KnowledgePoint knowledgePoint = requireOwnedKnowledge(userId, knowledgeId);
         knowledgePoint.setTitle(request.getTitle().trim());

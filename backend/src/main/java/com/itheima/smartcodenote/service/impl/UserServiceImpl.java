@@ -27,6 +27,8 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -78,11 +80,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = "user", key = "#userId")
     public UserInfoResponse getUserInfo(Long userId) {
         return toUserInfo(requireUser(userId));
     }
 
     @Override
+    @CacheEvict(value = "user", key = "#userId")
     public UserInfoResponse updateUser(Long userId, UpdateUserRequest request) {
         User user = requireUser(userId);
         ensureEmailAvailable(request.getEmail(), userId);
@@ -149,6 +153,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @CacheEvict(value = "user", key = "#userId")
     public UserInfoResponse uploadAvatar(Long userId, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new BusinessException("file is required");
