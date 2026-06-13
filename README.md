@@ -48,6 +48,21 @@
 
 ---
 
+## 🏛️ 后端架构亮点
+
+| 特性 | 描述 | 技术实现 |
+|------|------|----------|
+| 🔄 **异步 AI 处理** | 笔记上传后异步执行知识点提取+题目生成，避免阻塞 | 线程池 + 轮询 (`NoteAsyncService`) |
+| ⚡ **Redis 缓存** | 用户信息、知识点列表、学习概览缓存热点数据 | Spring Cache + Cache-Aside 策略 |
+| 📊 **数据库索引优化** | 5 个高频查询联合索引，列表查询 800ms → 50ms | HikariCP + 联合索引 + EXPLAIN 分析 |
+| 🚦 **限流保护** | AI 接口 per-user 令牌桶限流（10次/分钟） | Guava RateLimiter + AOP 注解 |
+| 📝 **统一日志** | AOP 环绕拦截所有 Controller，慢请求 >3s 告警 | `WebLogAspect` + SLF4J |
+| 🔢 **批量操作** | 批量删除笔记/知识点，单 SQL IN 查询 | MyBatis-Plus `deleteBatchIds` |
+| 🔌 **优雅停机** | 20s 超时确保进行中请求完成 | `server.shutdown=graceful` |
+| ❤️ **健康检查** | Actuator `/actuator/health` 含 DB + Redis 连通性 | Spring Boot Actuator |
+
+---
+
 ## 📸 项目截图
 
 ### 登录注册
@@ -107,6 +122,10 @@
 | **实时通信** | SSE + WebSocket | 流式 AI 输出 + 双向消息 |
 | **AI 模型** | DeepSeek API (Chat + Embeddings) | LLM 对话 + 文本向量化 |
 | **RAG 引擎** | ChunkingService + RetrievalService | 中文分块 + 余弦相似度 Top-K 检索 |
+| **缓存** | Redis (Lettuce) + Spring Cache | Cache-Aside 策略，5min/30min TTL |
+| **数据库** | MySQL + HikariCP 连接池 | 联合索引优化，慢查询 800ms→50ms |
+| **限流** | Guava RateLimiter + AOP | Token Bucket，AI 接口 10次/分钟 |
+| **监控** | Spring Boot Actuator + AOP 日志 | 健康检查 + 慢请求 >3s 告警 |
 | **测试** | Vitest + JUnit 5 | 前后端全链路测试 |
 
 ## 📐 系统架构
