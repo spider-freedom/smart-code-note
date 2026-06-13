@@ -4,6 +4,14 @@ spring:
     url: ${DB_URL:jdbc:mysql://localhost:3306/smart_code_note?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:123456}
+    hikari:
+      # Connection pool tuning — HikariCP defaults are conservative
+      maximum-pool-size: 20        # Max concurrent DB connections
+      minimum-idle: 5              # Keep 5 warm connections
+      idle-timeout: 300000         # Recycle idle connections after 5 min
+      max-lifetime: 1200000        # Max connection lifetime 20 min
+      connection-timeout: 10000    # Wait max 10s for a connection
+      connection-test-query: SELECT 1
   data:
     redis:
       host: ${REDIS_HOST:localhost}

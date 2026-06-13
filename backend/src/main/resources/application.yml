@@ -6,6 +6,14 @@ spring:
 
 server:
   port: 8080
+  shutdown: graceful
+  tomcat:
+    # Keep connections alive during grace period for in-flight requests
+    connection-timeout: 30000
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
 
 mybatis-plus:
   configuration:
@@ -15,6 +23,16 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
 
 smart-code-note:
   jwt:
