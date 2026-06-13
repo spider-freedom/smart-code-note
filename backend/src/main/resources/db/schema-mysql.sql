@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS note (
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted TINYINT DEFAULT 0,
-    INDEX idx_note_user_id (user_id)
+    INDEX idx_note_user_id (user_id),
+    INDEX idx_note_user_create (user_id, create_time)
 );
 
 CREATE TABLE IF NOT EXISTS knowledge_point (
@@ -65,7 +66,8 @@ CREATE TABLE IF NOT EXISTS question (
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted TINYINT DEFAULT 0,
     INDEX idx_question_user_id (user_id),
-    INDEX idx_question_knowledge_id (knowledge_id)
+    INDEX idx_question_knowledge_id (knowledge_id),
+    INDEX idx_question_user_type (user_id, question_type)
 );
 
 CREATE TABLE IF NOT EXISTS question_option (
@@ -87,7 +89,8 @@ CREATE TABLE IF NOT EXISTS answer_record (
     ai_comment TEXT,
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_answer_user_id (user_id),
-    INDEX idx_answer_question_id (question_id)
+    INDEX idx_answer_question_id (question_id),
+    INDEX idx_answer_user_create (user_id, create_time)
 );
 
 CREATE TABLE IF NOT EXISTS wrong_question (
@@ -101,7 +104,8 @@ CREATE TABLE IF NOT EXISTS wrong_question (
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted TINYINT DEFAULT 0,
     UNIQUE KEY uk_wrong_user_question (user_id, question_id),
-    INDEX idx_wrong_user_id (user_id)
+    INDEX idx_wrong_user_id (user_id),
+    INDEX idx_wrong_user_time (user_id, last_wrong_time)
 );
 
 CREATE TABLE IF NOT EXISTS chat_session (
@@ -136,7 +140,8 @@ CREATE TABLE IF NOT EXISTS review_record (
     next_review_time DATETIME,
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_review_user_id (user_id),
-    INDEX idx_review_knowledge_id (knowledge_id)
+    INDEX idx_review_knowledge_id (knowledge_id),
+    INDEX idx_review_user_next (user_id, next_review_time)
 );
 
 CREATE TABLE IF NOT EXISTS note_parse_task (
