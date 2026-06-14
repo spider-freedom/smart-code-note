@@ -1,8 +1,8 @@
 <div align="center">
 
-# 📚 Smart Code Note
+# 📚 智能笔记服务系统
 
-**AI 驱动的智能学习平台 — 笔记解析 · 题目生成 · 在线练习 · 间隔复习 · RAG 检索增强**
+**AI 笔记管理后端服务 — 异步处理 · 缓存 · 索引优化 · 限流 · RAG**
 
 [![Vue 3](https://img.shields.io/badge/Vue-3.5-4fc08d?logo=vue.js)](https://vuejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178c6?logo=typescript)](https://www.typescriptlang.org/)
