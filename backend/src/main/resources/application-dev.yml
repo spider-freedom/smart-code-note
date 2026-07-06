@@ -12,6 +12,9 @@ spring:
       max-lifetime: 1200000        # Max connection lifetime 20 min
       connection-timeout: 10000    # Wait max 10s for a connection
       connection-test-query: SELECT 1
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
   data:
     redis:
       host: ${REDIS_HOST:localhost}

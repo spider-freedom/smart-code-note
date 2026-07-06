@@ -5,11 +5,14 @@
 **AI 笔记管理后端服务 — 异步处理 · 缓存 · 索引优化 · 限流 · RAG**
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-6db33f?logo=springboot)](https://spring.io/)
-[![Java](https://img.shields.io/badge/Java-21-ed8b00?logo=openjdk)](https://openjdk.org/)
+[![Java](https://img.shields.io/badge/Java-17-ed8b00?logo=openjdk)](https://openjdk.org/)
 [![Vue 3](https://img.shields.io/badge/Vue-3.5-4fc08d?logo=vue.js)](https://vuejs.org/)
 [![DeepSeek](https://img.shields.io/badge/AI-DeepSeek-6366f1)](https://platform.deepseek.com/)
+[![MySQL](https://img.shields.io/badge/DB-MySQL-4479A1?logo=mysql)](https://www.mysql.com/)
 [![Redis](https://img.shields.io/badge/Cache-Redis-dc382d?logo=redis)](https://redis.io/)
-[![Guava](https://img.shields.io/badge/RateLimit-Guava-4285f4?logo=google)](https://github.com/google/guava)
+[![Docker](https://img.shields.io/badge/Deploy-Docker-2496ED?logo=docker)](https://www.docker.com/)
+[![MinIO](https://img.shields.io/badge/Storage-MinIO-FF0000?logo=minio)](https://min.io/)
+[![Swagger](https://img.shields.io/badge/API-Swagger-85EA2D?logo=swagger)](https://swagger.io/)
 [![RAG](https://img.shields.io/badge/AI-RAG-8b5cf6)](https://en.wikipedia.org/wiki/Retrieval-augmented_generation)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -22,13 +25,15 @@
 | 特性 | 描述 | 技术实现 |
 |------|------|----------|
 | 🔄 **异步 AI 处理** | 笔记上传后异步执行知识点提取+题目生成，上传接口响应 ~30s → ~200ms | 线程池 (`NoteAsyncService`) + 轮询 |
+| 🧠 **自研 RAG** | 中文分块 → Embeddings 向量化 → 余弦相似度检索 → 上下文注入 | `ChunkingService` + `RetrievalService` |
 | ⚡ **Redis 缓存** | 用户信息、知识点列表、学习概览三层缓存，热点命中率约 70% | Spring Cache + Cache-Aside + Lettuce |
 | 📊 **索引优化** | 5 个联合索引（user_id + create_time 等），列表查询 ~800ms → ~50ms | EXPLAIN + HikariCP |
 | 🚦 **限流保护** | AI 接口单用户 10 次/分钟，令牌桶算法 | Guava RateLimiter + AOP |
 | 📝 **统一日志** | AOP 拦截所有 Controller，请求耗时 + 慢请求 >3s 告警 | `WebLogAspect` |
-| 🔢 **批量操作** | 批量删除笔记/知识点，单条 SQL IN 查询 | MyBatis-Plus `deleteBatchIds` |
+| 🗄️ **容器化部署** | MySQL + Redis + MinIO 一键启动 | Docker Compose |
+| 📦 **对象存储** | 头像/笔记文件上传至 MinIO（S3 兼容） | MinIO + Spring Multipart |
+| 📄 **API 文档** | Swagger UI 自动生成，在线调试 | SpringDoc OpenAPI 2.8 |
 | ⚙️ **工程规范** | 连接池调优 + 优雅停机 + Actuator 健康检查 | HikariCP + `server.shutdown=graceful` |
-| 🧠 **自研 RAG** | 中文分块 → Embeddings 向量化 → 余弦相似度检索 → 上下文注入 | `ChunkingService` + `RetrievalService` |
 
 ---
 
@@ -89,13 +94,16 @@
 
 | 层级 | 技术 |
 |------|------|
-| **后端** | Spring Boot 3.5 · Java 21 · MyBatis-Plus 3.5 · Maven |
+| **后端** | Spring Boot 3.5 · Java 17 · MyBatis-Plus 3.5 · Maven |
 | **数据库** | MySQL 8.0 + H2（测试）· HikariCP 连接池 |
 | **缓存** | Redis 7.x（Lettuce 客户端）· Spring Cache |
 | **AI** | DeepSeek API（Chat + Embeddings）· 自研 RAG 引擎 |
+| **对象存储** | MinIO（开发/生产）· Docker Compose 集成 |
 | **通信** | REST API · SSE 流式 · WebSocket 双向 |
 | **认证** | JWT（Auth0 java-jwt）· HMAC256 · 拦截器 |
 | **限流** | Guava RateLimiter · 令牌桶算法 · AOP 注解 |
+| **部署** | Docker Compose（MySQL + Redis + MinIO） |
+| **文档** | SpringDoc OpenAPI 2.8 · Swagger UI |
 | **监控** | Actuator · AOP 日志 · 慢请求告警 |
 | **前端** | Vue 3 · TypeScript · Vite · Element Plus · Pinia · ECharts |
 | **测试** | JUnit 5（9 后端集成测试）· Vitest（24 前端用例） |
@@ -139,43 +147,46 @@
 
 ## 🚀 快速启动
 
-### 环境要求
-
-| 工具 | 版本 | 说明 |
-|------|------|------|
-| Java | 21+ | 后端运行环境 |
-| Maven | 3.8+ | 后端构建 |
-| Node.js | 18+ | Web 前端 |
-| MySQL | 8.0+ | 数据存储 |
-| Redis | 7.x | 缓存（可选 — 不配置则缓存功能不可用） |
-| DeepSeek API Key | — | [获取](https://platform.deepseek.com/api_keys) |
-
-### 步骤
+### 方式一：Docker Compose（推荐）
 
 ```bash
-# 1. 克隆
 git clone https://github.com/spider-freedom/smart-code-note.git
 cd smart-code-note
 
+# 1. 启动基础设施
+docker compose up -d
+# → MySQL :3306 · Redis :6379 · MinIO :9000 (console :9001)
+
 # 2. 配置
 cp .env.example .env
-# 编辑 .env 填入 DEEPSEEK_API_KEY / DB_URL / DB_USERNAME / DB_PASSWORD / REDIS_HOST
+# 编辑 .env 填入 DEEPSEEK_API_KEY
 
-# 3. 数据库
-# CREATE DATABASE smart_code_note DEFAULT CHARACTER SET utf8mb4;
-# 应用启动后 MyBatis-Plus 自动建表
-
-# 4. 后端
+# 3. 后端
 cd backend
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
+# → http://localhost:8080 · Swagger: /swagger-ui.html
 
-# 5. 前端（新终端）
+# 4. 前端（新终端）
 cd frontend
 npm install && npm run dev
+# → http://localhost:5173
 ```
 
-- 后端：**http://localhost:8080** · 健康检查：`GET /actuator/health`
-- 前端：**http://localhost:5173** · Vite 自动代理 `/api` → `localhost:8080`
+### 方式二：手动启动
+
+| 工具 | 版本 | 说明 |
+|------|------|------|
+| Java | 17+ | 后端运行环境 |
+| Maven | 3.8+ | 后端构建 |
+| Node.js | 18+ | Web 前端 |
+| MySQL | 8.0+ | 数据存储 |
+| Redis | 7.x | 缓存 |
+
+```bash
+cp .env.example .env
+# 编辑 .env 并手动启动 MySQL + Redis
+cd backend && mvn spring-boot:run -Dspring-boot.run.profiles=dev
+```
 
 ---
 

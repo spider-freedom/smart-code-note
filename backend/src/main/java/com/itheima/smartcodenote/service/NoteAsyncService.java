@@ -186,7 +186,7 @@ public class NoteAsyncService {
                             qo.setQuestionId(q.getId());
                             qo.setOptionKey(opt.optionKey());
                             qo.setOptionContent(opt.optionContent());
-                            qo.setIsCorrect(opt.correct() ? 1 : 0);
+                            qo.setCorrect(opt.correct() ? 1 : 0);
                             questionOptionMapper.insert(qo);
                         }
                     }

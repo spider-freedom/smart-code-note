@@ -42,7 +42,7 @@ smart-code-note:
     max-size: 20MB
   ai:
     deepseek:
-      api-key: ${DEEPSEEK_API_KEY:sk-521c5a46d9e34254b4eaa15b2ce92c34}
+      api-key: ${DEEPSEEK_API_KEY:}
       base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
       model: ${DEEPSEEK_MODEL:deepseek-chat}
       embedding-model: ${DEEPSEEK_EMBEDDING_MODEL:deepseek-chat}
