@@ -17,6 +17,7 @@ import com.smartcodenote.mapper.NoteMapper;
 import com.smartcodenote.rag.ChunkingService;
 import com.smartcodenote.rag.EmbeddingClient;
 import com.smartcodenote.rag.RagProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 import com.smartcodenote.service.NoteParserService;
 import com.smartcodenote.service.NoteService;
 import java.io.IOException;
@@ -47,7 +48,8 @@ public class NoteServiceImpl implements NoteService {
     private final FileStorageProperties fileStorageProperties;
     private final RagProperties ragProperties;
     private final ChunkingService chunkingService;
-    private final EmbeddingClient embeddingClient;
+    @Autowired(required = false)
+    private EmbeddingClient embeddingClient;
 
     @Override
     public NoteUploadResponse uploadText(Long userId, NoteUploadTextRequest request) {
@@ -189,6 +191,7 @@ public class NoteServiceImpl implements NoteService {
      */
     private void indexNoteAsync(Note note) {
         if (!ragProperties.isEnabled()) return;
+        if (embeddingClient == null) return;
         if (!StringUtils.hasText(note.getCleanContent())) return;
 
         CompletableFuture.runAsync(() -> {

@@ -21,7 +21,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
 
 /**
@@ -34,7 +34,7 @@ import org.springframework.stereotype.Service;
  * - Clean separation: HTTP concerns live in AiConfig, business logic lives here
  */
 @Service
-@ConditionalOnProperty(name = "smart-code-note.ai.deepseek.api-key")
+@ConditionalOnExpression("T(org.springframework.util.StringUtils).hasText('${smart-code-note.ai.deepseek.api-key:}')")
 public class LangChain4jAiService implements AiService {
 
     private static final Logger log = LoggerFactory.getLogger(LangChain4jAiService.class);

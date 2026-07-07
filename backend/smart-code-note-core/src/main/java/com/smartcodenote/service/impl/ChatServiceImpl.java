@@ -35,6 +35,8 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -65,10 +67,12 @@ public class ChatServiceImpl implements ChatService {
     private final NoteChunkMapper noteChunkMapper;
     private final AiService aiService;
     private final RagProperties ragProperties;
-    private final EmbeddingClient embeddingClient;
     private final RetrievalService retrievalService;
     private final RagContextBuilder ragContextBuilder;
     private final ChatProperties chatProperties;
+
+    @Autowired(required = false)
+    private EmbeddingClient embeddingClient;
 
     @Override
     public List<ChatSessionListItem> listSessions(Long userId) {
@@ -395,6 +399,7 @@ public class ChatServiceImpl implements ChatService {
             return "";
         }
 
+        if (embeddingClient == null) { return ""; }
         float[] queryVector = embeddingClient.embed(userMessage);
         List<RetrievalService.ScoredChunk> scored = retrievalService.search(queryVector, allChunks);
 

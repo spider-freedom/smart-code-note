@@ -18,6 +18,7 @@ import com.smartcodenote.mapper.NoteChunkMapper;
 import com.smartcodenote.mapper.NoteMapper;
 import com.smartcodenote.rag.EmbeddingClient;
 import com.smartcodenote.rag.RagProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 import com.smartcodenote.service.KnowledgeService;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -44,7 +45,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     private final NoteChunkMapper noteChunkMapper;
     private final AiService aiService;
     private final RagProperties ragProperties;
-    private final EmbeddingClient embeddingClient;
+    @Autowired(required = false)
+    private EmbeddingClient embeddingClient;
 
     @Override
     @Cacheable(value = "knowledge-list", key = "#userId + ':' + #request.noteId + ':' + #request.pageNum")
@@ -259,6 +261,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
      */
     private void indexKnowledgeAsync(KnowledgePoint knowledgePoint) {
         if (!ragProperties.isEnabled()) return;
+        if (embeddingClient == null) return;
         if (!StringUtils.hasText(knowledgePoint.getSummary())) return;
 
         CompletableFuture.runAsync(() -> {

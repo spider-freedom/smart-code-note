@@ -15,6 +15,7 @@ import com.smartcodenote.mapper.QuestionMapper;
 import com.smartcodenote.mapper.QuestionOptionMapper;
 import com.smartcodenote.rag.EmbeddingClient;
 import com.smartcodenote.rag.RagProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -65,7 +66,8 @@ public class NoteAsyncService {
     private final NoteChunkMapper noteChunkMapper;
     private final AiService aiService;
     private final RagProperties ragProperties;
-    private final EmbeddingClient embeddingClient;
+    @Autowired(required = false)
+    private EmbeddingClient embeddingClient;
 
     /**
      * Submit an async AI generation task for a note.
@@ -222,6 +224,7 @@ public class NoteAsyncService {
      */
     private void indexKnowledgeAsync(KnowledgePoint knowledgePoint) {
         if (!ragProperties.isEnabled()) return;
+        if (embeddingClient == null) return;
         if (!StringUtils.hasText(knowledgePoint.getSummary())) return;
 
         java.util.concurrent.CompletableFuture.runAsync(() -> {

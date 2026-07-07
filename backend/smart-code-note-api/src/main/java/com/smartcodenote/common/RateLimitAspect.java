@@ -6,6 +6,8 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.RateLimiter;
 import com.smartcodenote.exception.BusinessException;
 import com.smartcodenote.security.CurrentUser;
+import java.time.Duration;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -13,6 +15,7 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
@@ -27,6 +30,7 @@ import org.springframework.stereotype.Component;
  */
 @Aspect
 @Component
+@ConditionalOnProperty(prefix = "smart-code-note.rate-limit", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class RateLimitAspect {
 
     private static final Logger log = LoggerFactory.getLogger(RateLimitAspect.class);
@@ -40,28 +44,40 @@ public class RateLimitAspect {
             .build(new CacheLoader<>() {
                 @Override
                 public RateLimiter load(Long userId) {
-                    return RateLimiter.create(10.0 / 60.0); // default 10/min
+                    return RateLimiter.create(10.0 / 60.0);
                 }
             });
+
+    /**
+     * Track whether a user has had at least one successful request through.
+     * First request is always allowed so slow-rate limiters don't block the initial call.
+     */
+    private final ConcurrentHashMap<Long, Boolean> firstRequestGranted = new ConcurrentHashMap<>();
 
     @Around("@annotation(rateLimit)")
     public Object check(ProceedingJoinPoint joinPoint, RateLimit rateLimit) throws Throwable {
         Long userId = CurrentUser.getUserId();
         if (userId == null) {
-            // Allow unauthenticated requests through (login/register)
             return joinPoint.proceed();
         }
 
-        // Get or create per-user rate limiter with configured rate
         double permitsPerSecond = rateLimit.permits()
                 / (double) rateLimit.unit().toSeconds(rateLimit.duration());
         RateLimiter limiter;
         try {
             limiter = userLimiters.get(userId);
+            if (Math.abs(limiter.getRate() - permitsPerSecond) > 0.001) {
+                limiter.setRate(permitsPerSecond);
+            }
         } catch (ExecutionException e) {
             limiter = RateLimiter.create(permitsPerSecond);
         }
-        limiter.setRate(permitsPerSecond);
+
+        // First request per user always passes (prevents cold-start blocking)
+        if (firstRequestGranted.putIfAbsent(userId, Boolean.TRUE) == null) {
+            limiter.tryAcquire(); // consume the permit without blocking
+            return joinPoint.proceed();
+        }
 
         if (!limiter.tryAcquire()) {
             log.warn("Rate limit exceeded: user={}, method={}, permits/sec={}",

@@ -6,6 +6,7 @@ import java.nio.FloatBuffer;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
  * model-agnostic switching (DeepSeek → Qwen → OpenAI) for free.
  */
 @Component
+@ConditionalOnBean(EmbeddingModel.class)
 public class EmbeddingClient {
 
     private static final Logger log = LoggerFactory.getLogger(EmbeddingClient.class);

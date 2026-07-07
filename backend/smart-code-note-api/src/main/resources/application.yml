@@ -53,6 +53,8 @@ smart-code-note:
     chunk-overlap: 100
     top-k: 5
     similarity-threshold: 0.6
+  rate-limit:
+    enabled: true
   chat:
     max-history-rounds: 10      # 上下文窗口：最多保留最近N轮对话
     max-total-tokens: 6000      # 上下文预算：prompt总token上限（中文1字≈1.5token）

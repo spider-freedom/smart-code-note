@@ -6,7 +6,7 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import java.time.Duration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,7 +20,7 @@ import org.springframework.context.annotation.Configuration;
 public class AiConfig {
 
     @Bean
-    @ConditionalOnProperty(name = "smart-code-note.ai.deepseek.api-key")
+    @ConditionalOnExpression("T(org.springframework.util.StringUtils).hasText('${smart-code-note.ai.deepseek.api-key:}')")
     public ChatLanguageModel chatLanguageModel(AiProperties properties) {
         return OpenAiChatModel.builder()
                 .baseUrl(properties.getBaseUrl() + "/v1")
@@ -35,7 +35,7 @@ public class AiConfig {
     }
 
     @Bean
-    @ConditionalOnProperty(name = "smart-code-note.ai.deepseek.api-key")
+    @ConditionalOnExpression("T(org.springframework.util.StringUtils).hasText('${smart-code-note.ai.deepseek.api-key:}')")
     public EmbeddingModel embeddingModel(AiProperties properties) {
         return OpenAiEmbeddingModel.builder()
                 .baseUrl(properties.getBaseUrl() + "/v1")

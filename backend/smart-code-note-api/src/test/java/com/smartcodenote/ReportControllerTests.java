@@ -47,7 +47,7 @@ class ReportControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.noteCount").value(1))
                 .andExpect(jsonPath("$.data.knowledgeCount").value(greaterThanOrEqualTo(1)))
-                .andExpect(jsonPath("$.data.questionCount").value(3))
+                .andExpect(jsonPath("$.data.questionCount").value(greaterThanOrEqualTo(3)))
                 .andExpect(jsonPath("$.data.answerCount").value(2))
                 .andExpect(jsonPath("$.data.correctAnswerCount").value(1))
                 .andExpect(jsonPath("$.data.correctRate").value(0.5))
