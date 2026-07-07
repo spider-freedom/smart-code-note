@@ -33,7 +33,7 @@
 | ⚡ **三级缓存** | 用户信息 / 知识列表 / 学习概览；Cache-Aside 策略，热点命中率 ~70% | Spring Cache + Redis |
 | 📊 **索引优化** | 5 个联合索引（user_id+create_time 等），列表查询 ~800ms → ~50ms | EXPLAIN + MySQL 索引 |
 | 🚦 **限流保护** | AI 接口 10 次/分钟 per-user，Guava 令牌桶，超限 HTTP 429 | `@RateLimit` + AOP |
-| 🪟 **上下文窗口管理** | 滑动窗口截断 + Token 预算检测 + 超限自动缩减 + 中英文混合估算 | `ChatProperties` + `estimateTokens()` |
+| 🪟 **上下文窗口管理** | 滑动窗口按轮次截断 + Token 预算估算（中文1字≈1.5token）+ 超限自动缩减 + SSE 溢出感知 | `ChatProperties` + `estimateTokens()` |
 | 🐳 **容器化** | MySQL + Redis + MinIO 一键启动；`docker compose up -d` | Docker Compose |
 | 📄 **API 文档** | Swagger UI 自动生成在线调试 | SpringDoc OpenAPI 2.8 |
 | ⚙️ **工程规范** | HikariCP 连接池 · Graceful Shutdown · Actuator 健康检查 · 慢请求 >3s 告警 | HikariCP · Actuator · AOP |
@@ -247,6 +247,18 @@ java -Dspring.profiles.active=prod \
 ```
 
 > 生产需配置 Nginx 反向代理 + HTTPS + SPA fallback + SSE / WebSocket 代理。
+
+---
+
+## 🔮 演进方向
+
+当前已实现上下文窗口管理的基础能力（滑动窗口 + Token 预算 + 溢出提示），后续演进路径：
+
+| 阶段 | 方案 | 说明 |
+|:----:|------|------|
+| ✅ 当前 | **滑动窗口** | 保留最近 N 轮完整对话，超出部分直接丢弃。简单可控，适合个人使用 |
+| 📋 规划 | **滑动窗口 + AI 摘要** | 对超出窗口的历史对话异步生成 200 字摘要，替换原始消息注入 prompt。用户无感知，不阻塞当前回复 |
+| 🔮 远期 | **向量化长期记忆** | 将历史对话按主题 Embedding 存入向量库，每次发消息时同时检索「笔记内容」和「相关历史对话」，给 AI 装上完整的搜索引擎 |
 
 ---
 
