@@ -2,7 +2,7 @@
 
 # 📚 智能笔记服务系统
 
-**AI 驱动学习平台 — LangChain4j · Maven 多模块 · RAG 引擎 · 异步架构**
+**AI 驱动学习平台 — LangChain4j · Maven 多模块 · 混合 RAG · 异步架构**
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-6db33f?logo=springboot)](https://spring.io/)
 [![Java](https://img.shields.io/badge/Java-17-ed8b00?logo=openjdk)](https://openjdk.org/)
@@ -29,7 +29,7 @@
 | 🧠 **LangChain4j AI 层** | ChatLanguageModel + EmbeddingModel 框架抽象；模型热切换无需改业务代码 | `LangChain4j` + `OpenAiChatModel` |
 | 📦 **Maven 多模块** | common（DTO/工具）→ core（业务/AI/RAG）→ api（控制器/入口）三层编译隔离 | Maven reactor |
 | 🔄 **异步 AI 处理** | 笔记上传 ~200ms 返回；AI 知识提取 + 题目生成后台线程池异步执行 | `NoteAsyncService` + 3 workers |
-| 🧠 **自研 RAG 引擎** | 中文分块 → Embedding 向量化 → 余弦相似度检索 → 上下文注入 AI 对话 | `ChunkingService` + `RetrievalService` |
+| 🧠 **混合 RAG** | LangChain4j EmbeddingModel 向量化 + 自研中文分块 + 余弦检索 | `ChunkingService` 自研 + `EmbeddingModel` 框架 |
 | ⚡ **三级缓存** | 用户信息 / 知识列表 / 学习概览；Cache-Aside 策略，热点命中率 ~70% | Spring Cache + Redis |
 | 📊 **索引优化** | 5 个联合索引（user_id+create_time 等），列表查询 ~800ms → ~50ms | EXPLAIN + MySQL 索引 |
 | 🚦 **限流保护** | AI 接口 10 次/分钟 per-user，Guava 令牌桶，超限 HTTP 429 | `@RateLimit` + AOP |
@@ -96,7 +96,7 @@
 | **LLM** | DeepSeek API（OpenAI 兼容）· Chat + Embeddings |
 | **数据库** | MySQL 8.0 · H2（测试）· MyBatis-Plus 3.5.7 · HikariCP |
 | **缓存** | Redis 7.x（Lettuce）· Spring Cache · Cache-Aside |
-| **RAG** | 自研引擎 — 中文分块 + 向量化 + 余弦检索 + 上下文注入 |
+| **RAG** | 混合架构 — LangChain4j EmbeddingModel 向量化 + 自研中文分块 + 余弦检索 |
 | **对象存储** | MinIO · S3 兼容 · Docker Compose 集成 |
 | **通信** | REST API · SSE 流式 · WebSocket |
 | **认证** | JWT（Auth0 java-jwt）· HMAC256 · 拦截器 · ThreadLocal |
@@ -133,7 +133,7 @@ flowchart TB
     subgraph CoreModule["smart-code-note-core (业务层)"]
         Services[10 Service 接口 + 10 Impl<br/>异步解析 · 练习判分 · 复习调度]
         AILayer[LangChain4j AI 层<br/>ChatLanguageModel<br/>EmbeddingModel]
-        RAGEngine[RAG 引擎<br/>Chunking → Embedding → Retrieval<br/>余弦相似度 · Top-K 筛选]
+        RAGEngine[混合 RAG<br/>自研: Chunking · Retrieval<br/>LangChain4j: EmbeddingModel]
         Security[AuthInterceptor · JwtUtil<br/>ThreadLocal 用户隔离]
     end
 
@@ -167,7 +167,7 @@ flowchart TB
 ```mermaid
 flowchart LR
     API[smart-code-note-api<br/>入口 · Controller · WebSocket] -->|依赖| Core
-    Core[smart-code-note-core<br/>Service · AI · RAG · Mapper] -->|依赖| Common
+    Core[smart-code-note-core<br/>Service · AI 框架 · 混合 RAG · Mapper] -->|依赖| Common
     Common[smart-code-note-common<br/>DTO · Exception · Util] -->|零框架依赖| None( )
 ```
 
