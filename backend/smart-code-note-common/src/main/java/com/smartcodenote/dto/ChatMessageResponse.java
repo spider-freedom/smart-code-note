@@ -12,5 +12,7 @@ public class ChatMessageResponse {
     private Long sessionId;
     private String role;
     private String content;
+    private Boolean truncated;
+    private Integer messageCount;
     private LocalDateTime createTime;
 }

@@ -225,6 +225,8 @@ public class ChatServiceImpl implements ChatService {
         String userPrompt = historyText + "\n用户：" + request.getMessage();
 
         final Long finalSessionId = sessionId;
+        final int finalTruncated = truncatedCount;
+        final int finalTotalMessages = allHistory.size() + 1; // +1 for the new assistant msg
 
         aiService.chatStream(
                 systemPrompt,
@@ -254,6 +256,8 @@ public class ChatServiceImpl implements ChatService {
                             .sessionId(finalSessionId)
                             .role("assistant")
                             .content(fullReply)
+                            .truncated(finalTruncated > 0)
+                            .messageCount(finalTotalMessages)
                             .createTime(assistantMessage.getCreateTime())
                             .build();
 
