@@ -33,6 +33,7 @@
 | ⚡ **三级缓存** | 用户信息 / 知识列表 / 学习概览；Cache-Aside 策略，热点命中率 ~70% | Spring Cache + Redis |
 | 📊 **索引优化** | 5 个联合索引（user_id+create_time 等），列表查询 ~800ms → ~50ms | EXPLAIN + MySQL 索引 |
 | 🚦 **限流保护** | AI 接口 10 次/分钟 per-user，Guava 令牌桶，超限 HTTP 429 | `@RateLimit` + AOP |
+| 🪟 **上下文窗口管理** | 滑动窗口截断 + Token 预算检测 + 超限自动缩减 + 中英文混合估算 | `ChatProperties` + `estimateTokens()` |
 | 🐳 **容器化** | MySQL + Redis + MinIO 一键启动；`docker compose up -d` | Docker Compose |
 | 📄 **API 文档** | Swagger UI 自动生成在线调试 | SpringDoc OpenAPI 2.8 |
 | ⚙️ **工程规范** | HikariCP 连接池 · Graceful Shutdown · Actuator 健康检查 · 慢请求 >3s 告警 | HikariCP · Actuator · AOP |
