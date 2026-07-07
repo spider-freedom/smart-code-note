@@ -2,6 +2,7 @@ package com.smartcodenote.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.smartcodenote.ai.AiService;
+import com.smartcodenote.config.ChatProperties;
 import com.smartcodenote.dto.ChatLearningContext;
 import com.smartcodenote.dto.ChatMessageResponse;
 import com.smartcodenote.dto.ChatSendRequest;
@@ -67,6 +68,7 @@ public class ChatServiceImpl implements ChatService {
     private final EmbeddingClient embeddingClient;
     private final RetrievalService retrievalService;
     private final RagContextBuilder ragContextBuilder;
+    private final ChatProperties chatProperties;
 
     @Override
     public List<ChatSessionListItem> listSessions(Long userId) {
@@ -74,12 +76,17 @@ public class ChatServiceImpl implements ChatService {
                         .eq(ChatSession::getUserId, userId)
                         .orderByDesc(ChatSession::getUpdateTime))
                 .stream()
-                .map(s -> ChatSessionListItem.builder()
-                        .id(s.getId())
-                        .title(s.getTitle())
-                        .createTime(s.getCreateTime())
-                        .updateTime(s.getUpdateTime())
-                        .build())
+                .map(s -> {
+                    long count = messageMapper.selectCount(new LambdaQueryWrapper<ChatMessage>()
+                            .eq(ChatMessage::getSessionId, s.getId()));
+                    return ChatSessionListItem.builder()
+                            .id(s.getId())
+                            .title(s.getTitle())
+                            .messageCount((int) count)
+                            .createTime(s.getCreateTime())
+                            .updateTime(s.getUpdateTime())
+                            .build();
+                })
                 .toList();
     }
 
@@ -145,13 +152,21 @@ public class ChatServiceImpl implements ChatService {
         userMessage.setDeleted(0);
         messageMapper.insert(userMessage);
 
-        List<ChatMessage> history = messageMapper.selectList(
+        List<ChatMessage> allHistory = messageMapper.selectList(
                 new LambdaQueryWrapper<ChatMessage>()
                         .eq(ChatMessage::getSessionId, sessionId)
                         .orderByAsc(ChatMessage::getCreateTime));
-        String historyText = history.stream()
+
+        // ── Context Window Management: sliding window by rounds ──
+        int maxRounds = chatProperties.getMaxHistoryRounds();
+        int maxTokens = chatProperties.getMaxTotalTokens();
+
+        List<ChatMessage> windowHistory = applySlidingWindow(allHistory, maxRounds);
+        String historyText = windowHistory.stream()
                 .map(m -> (m.getRole().equals("user") ? "用户" : "小码") + "：" + m.getContent())
                 .collect(Collectors.joining("\n"));
+
+        int truncatedCount = allHistory.size() - windowHistory.size();
 
         String contextText = buildLearningContextText(userId);
 
@@ -162,16 +177,51 @@ public class ChatServiceImpl implements ChatService {
                 ragText = retrieveRagContext(userId, request.getMessage());
             } catch (Exception e) {
                 log.warn("RAG retrieval failed for userId={}: {}", userId, e.getMessage());
-                // Fall through — chat still works without RAG
             }
         }
 
-        String systemPrompt;
-        if (!ragText.isEmpty()) {
-            systemPrompt = STUDY_BUDDY_PROMPT + "\n\n" + ragText + "\n" + contextText + RAG_INSTRUCTION;
-        } else {
-            systemPrompt = STUDY_BUDDY_PROMPT + "\n" + contextText;
+        // ── Token Budget Check ──
+        int systemTokens = estimateTokens(STUDY_BUDDY_PROMPT);
+        int ragTokens = estimateTokens(ragText);
+        int contextTokens = estimateTokens(contextText);
+        int historyTokens = estimateTokens(historyText);
+        int userTokens = estimateTokens(request.getMessage());
+        int totalTokens = systemTokens + ragTokens + contextTokens + historyTokens + userTokens;
+
+        if (totalTokens > maxTokens) {
+            int excess = totalTokens - maxTokens;
+            log.info("Context over budget: {} total > {} max, shrinking history by ~{} rounds",
+                    totalTokens, maxTokens, Math.max(1, excess / 200));
+            // Shrink history further until within budget
+            while (totalTokens > maxTokens && maxRounds > 1) {
+                maxRounds--;
+                windowHistory = applySlidingWindow(allHistory, maxRounds);
+                historyText = windowHistory.stream()
+                        .map(m -> (m.getRole().equals("user") ? "用户" : "小码") + "：" + m.getContent())
+                        .collect(Collectors.joining("\n"));
+                historyTokens = estimateTokens(historyText);
+                totalTokens = systemTokens + ragTokens + contextTokens + historyTokens + userTokens;
+            }
+            truncatedCount = allHistory.size() - windowHistory.size();
         }
+
+        log.info("Chat context: system={} RAG={} context={} history={} user={} = {} total (window={}r, truncated={})",
+                systemTokens, ragTokens, contextTokens, historyTokens, userTokens,
+                totalTokens, maxRounds, truncatedCount);
+
+        String systemPrompt;
+        StringBuilder promptBuilder = new StringBuilder(STUDY_BUDDY_PROMPT);
+        if (!ragText.isEmpty()) {
+            promptBuilder.append("\n\n").append(ragText).append("\n").append(contextText).append(RAG_INSTRUCTION);
+        } else {
+            promptBuilder.append("\n").append(contextText);
+        }
+        // ── Overflow hint: notify AI when context is truncated ──
+        if (truncatedCount > 0) {
+            promptBuilder.append("\n\n[系统提示: 对话历史已超过上下文窗口限制，更早的 ")
+                    .append(truncatedCount).append(" 条消息未被包含。请基于当前可见的对话内容回答。]");
+        }
+        systemPrompt = promptBuilder.toString();
         String userPrompt = historyText + "\n用户：" + request.getMessage();
 
         final Long finalSessionId = sessionId;
@@ -256,6 +306,51 @@ public class ChatServiceImpl implements ChatService {
                 .todayCorrectRate(correctRate)
                 .recentNoteTitle(recentNote != null ? recentNote.getTitle() : null)
                 .build();
+    }
+
+    /**
+     * Keep only the most recent N rounds from the conversation history.
+     * 1 round = 1 user message + 1 assistant reply. Rounds are determined
+     * by counting user messages from the end backwards.
+     */
+    private List<ChatMessage> applySlidingWindow(List<ChatMessage> messages, int maxRounds) {
+        if (messages == null || messages.isEmpty() || maxRounds <= 0) {
+            return List.of();
+        }
+        int userMsgCount = 0;
+        int cutoff = messages.size();
+        // Walk backwards, counting user messages (each = 1 round)
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            if ("user".equals(messages.get(i).getRole())) {
+                userMsgCount++;
+                if (userMsgCount >= maxRounds) {
+                    cutoff = i;
+                    break;
+                }
+            }
+        }
+        return messages.subList(cutoff, messages.size());
+    }
+
+    /**
+     * Rough token estimation for Chinese text. Chinese: ~1.5 tokens per character.
+     * English: ~0.3 tokens per character. Uses a simple heuristic: count CJK chars
+     * vs ASCII chars and weight accordingly.
+     */
+    private int estimateTokens(String text) {
+        if (text == null || text.isEmpty()) return 0;
+        int cjk = 0;
+        int other = 0;
+        for (char c : text.toCharArray()) {
+            if (Character.UnicodeBlock.of(c) == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS
+                    || Character.UnicodeBlock.of(c) == Character.UnicodeBlock.CJK_COMPATIBILITY_IDEOGRAPHS
+                    || Character.UnicodeBlock.of(c) == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A) {
+                cjk++;
+            } else if (!Character.isWhitespace(c)) {
+                other++;
+            }
+        }
+        return (int) Math.ceil(cjk * 1.5 + other * 0.3);
     }
 
     private String buildLearningContextText(Long userId) {

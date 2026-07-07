@@ -10,6 +10,7 @@ public class ChatSessionListItem {
 
     private Long id;
     private String title;
+    private Integer messageCount;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }
