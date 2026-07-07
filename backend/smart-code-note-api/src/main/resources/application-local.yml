@@ -1,0 +1,36 @@
+# Local development profile — H2 embedded database, no Redis, no Docker required.
+# Usage: mvn spring-boot:run -Dspring-boot.run.profiles=local
+
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:file:./data/smart-code-note;MODE=MySQL;AUTO_SERVER=TRUE
+    username: sa
+    password:
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+  flyway:
+    enabled: false                     # H2 auto-creates from schema.sql below
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-h2.sql
+  cache:
+    type: simple
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+smart-code-note:
+  file:
+    upload-dir: uploads
+  rate-limit:
+    enabled: true
+  rag:
+    enabled: true
