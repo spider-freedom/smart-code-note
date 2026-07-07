@@ -176,45 +176,49 @@ flowchart LR
 
 ## 🚀 快速启动
 
-### Docker Compose（推荐）
+### 前置条件
+
+- Java 17+ · Maven 3.8+ · Node.js 18+
+- DeepSeek API Key — [获取](https://platform.deepseek.com/api_keys)
+- MySQL 8.0 + Redis 7.x（或使用 local profile 跳过）
+
+### 方式一：MySQL + Redis 全功能
 
 ```bash
 git clone https://github.com/spider-freedom/smart-code-note.git
 cd smart-code-note
 
-# 1. 启动 MySQL + Redis + MinIO
-docker compose up -d
-# → MySQL :3306 · Redis :6379 · MinIO :9000 (console :9001)
+# 1. 创建数据库
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS smart_code_note CHARACTER SET utf8mb4;"
+# 手动执行建表 SQL（Flyway 当前禁用）
+mysql -u root -p smart_code_note < backend/smart-code-note-api/src/main/resources/db/migration/V1__init.sql
 
-# 2. 配置 API Key
-cp .env.example .env
-# 编辑 .env，填入 DEEPSEEK_API_KEY=sk-xxx
+# 2. 编译多模块
+cd backend && mvn install -DskipTests
 
-# 3. 后端
-cd backend
-export DEEPSEEK_API_KEY=sk-xxxxxxxx
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
-# → http://localhost:8080 · Swagger: /swagger-ui.html
+# 3. 启动后端（Windows 用 set，macOS/Linux 用 export）
+cd smart-code-note-api
+set DEEPSEEK_API_KEY=sk-xxxxxxxx
+mvn spring-boot:run -Dspring-boot.run.profiles=dev ^
+  "-Dspring-boot.run.jvmArguments=-Dserver.port=8081 -Dspring.flyway.enabled=false -Dspring.data.redis.password=你的Redis密码 -Dspring.cache.type=simple"
+# → http://localhost:8081 · Swagger: /swagger-ui.html
 
-# 4. 前端（新终端）
+# 4. 启动前端（新终端）
 cd frontend
+set VITE_API_TARGET=http://localhost:8081
 npm install && npm run dev
 # → http://localhost:5173
 ```
 
-### 手动启动
+> **已知限制：** RAG 当前禁用（DeepSeek 无 Embedding API），AI 聊天助手退化为纯 LLM 对话。Redis 缓存在 dev 模式下切为 simple cache。
 
-| 依赖 | 版本 | 说明 |
-|------|------|------|
-| Java | 17+ | 后端运行 |
-| Maven | 3.8+ | 后端构建 |
-| Node.js | 18+ | 前端开发 |
-| MySQL | 8.0+ | 数据存储 |
-| Redis | 7.x | 缓存 |
+### 方式二：H2 本地开发（无需 MySQL/Redis/Docker）
 
 ```bash
-cp .env.example .env  # 填入 DeepSeek API Key
-cd backend && mvn spring-boot:run -Dspring-boot.run.profiles=dev
+cd backend/smart-code-note-api
+set DEEPSEEK_API_KEY=sk-xxxxxxxx
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+# → http://localhost:8080 · Swagger: /swagger-ui.html
 ```
 
 ---
