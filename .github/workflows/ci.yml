@@ -49,7 +49,7 @@ jobs:
         with:
           node-version: 20
       - name: Install & Test
-        run: cd frontend && npm install && npx vitest run
+        run: cd frontend && rm -rf node_modules package-lock.json && npm install && npx vitest run
       - name: Build
         run: cd frontend && npm run build
 
