@@ -45,6 +45,6 @@ export const knowledgeApi = {
     onResult: (result: KnowledgeDetail[]) => void,
     onError: (message: string) => void,
   ): AbortController {
-    return createSSEStream('/api/knowledge/generate-stream', data as Record<string, unknown>, onChunk, onResult, onError)
+    return createSSEStream('/api/knowledge/generate-stream', data as unknown as Record<string, unknown>, onChunk, onResult, onError)
   },
 }

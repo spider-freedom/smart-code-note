@@ -29,6 +29,6 @@ export const questionApi = {
     onResult: (result: QuestionDetail[]) => void,
     onError: (message: string) => void,
   ): AbortController {
-    return createSSEStream('/api/questions/generate-stream', data as Record<string, unknown>, onChunk, onResult, onError)
+    return createSSEStream('/api/questions/generate-stream', data as unknown as Record<string, unknown>, onChunk, onResult, onError)
   },
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
 import { ChatDotRound, Close, Delete, Plus, Select, Sunny } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 import { useChatStore } from '@/stores/chat'
@@ -50,20 +50,6 @@ const clearCurrentChat = async () => {
     })
     store.newSession()
   } catch { /* cancelled */ }
-}
-
-const formatDate = (time: string) => {
-  if (!time) return ''
-  const d = new Date(time)
-  const now = new Date()
-  const diff = now.getTime() - d.getTime()
-  if (diff < 60000) return '刚刚'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`
-  if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-  const yesterday = new Date(now)
-  yesterday.setDate(yesterday.getDate() - 1)
-  if (d.toDateString() === yesterday.toDateString()) return '昨天'
-  return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
 }
 
 const showDateDivider = (index: number) => {
