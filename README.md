@@ -28,10 +28,10 @@
 |------|------|------|
 | 🧠 **LangChain4j AI 层** | ChatLanguageModel + EmbeddingModel 框架抽象；模型热切换无需改业务代码 | `LangChain4j` + `OpenAiChatModel` |
 | 📦 **Maven 多模块** | common（DTO/工具）→ core（业务/AI/RAG）→ api（控制器/入口）三层编译隔离 | Maven reactor |
-| 🔄 **异步 AI 处理** | 笔记上传 ~200ms 返回；AI 知识提取 + 题目生成后台线程池异步执行 | `NoteAsyncService` + 3 workers |
-| 🧠 **混合 RAG** | LangChain4j EmbeddingModel 向量化 + 自研中文分块 + 余弦检索 | `ChunkingService` 自研 + `EmbeddingModel` 框架 |
-| ⚡ **三级缓存** | 用户信息 / 知识列表 / 学习概览；Cache-Aside 策略，热点命中率 ~70% | Spring Cache + Redis |
-| 📊 **索引优化** | 5 个联合索引（user_id+create_time 等），列表查询 ~800ms → ~50ms | EXPLAIN + MySQL 索引 |
+| 🔄 **异步 AI 处理** | 笔记上传立即返回；AI 知识提取 + 题目生成后台线程池异步执行 | `NoteAsyncService` + 3 workers |
+| 🧠 **混合 RAG** | LangChain4j EmbeddingModel 向量化 + 自研中文分块 + 余弦检索 | `ChunkingService` 自研 + `EmbeddingModel` 框架（DeepSeek 无 Embedding API，当前需换用兼容模型启用） |
+| ⚡ **三类数据缓存** | 用户信息 / 知识列表 / 学习概览；读取时先查 Redis，未命中再查 MySQL 并回写 | Spring Cache + Redis |
+| 📊 **索引优化** | EXPLAIN 分析慢查询后添加联合索引（user_id+create_time 等），全表扫描改为索引扫描 | EXPLAIN + MySQL 索引 |
 | 🚦 **限流保护** | AI 接口 10 次/分钟 per-user，Guava 令牌桶，超限 HTTP 429 | `@RateLimit` + AOP |
 | 🪟 **上下文窗口管理** | 滑动窗口按轮次截断 + Token 预算估算（中文1字≈1.5token）+ 超限自动缩减 + SSE 溢出感知 | `ChatProperties` + `estimateTokens()` |
 | 🐳 **容器化** | MySQL + Redis + MinIO 一键启动；`docker compose up -d` | Docker Compose |
@@ -80,7 +80,7 @@
 | 模块 | 功能 |
 |------|------|
 | 🤖 | **AI 笔记解析** — 上传笔记 → 提取 3-5 个知识点 → 每知识点生成 5 道练习题 |
-| 💬 | **AI 学习助手** — 多轮对话，RAG 检索笔记知识增强回答，WebSocket 实时推送 |
+| 💬 | **AI 学习助手** — 多轮对话（当 Embedding 模型可用时启用 RAG 检索增强），SSE / WebSocket 实时推送 |
 | 📝 | **在线练习** — 按笔记/知识点/题型筛选，AI 判分 + 答题反馈 |
 | 🧠 | **间隔复习** — 遗忘曲线驱动，三档评分动态调整复习计划 |
 | ❌ | **错题本** — 错题自动归集，支持重练和标记已掌握 |
@@ -94,7 +94,7 @@
 |------|----------|
 | **后端框架** | Spring Boot 3.5 · Java 17 · Maven 多模块 |
 | **AI 框架** | LangChain4j 1.0-beta2 · ChatLanguageModel · EmbeddingModel |
-| **LLM** | DeepSeek API（OpenAI 兼容）· Chat + Embeddings |
+| **LLM** | DeepSeek API（OpenAI 兼容）· Chat |
 | **数据库** | MySQL 8.0 · H2（测试）· MyBatis-Plus 3.5.7 · HikariCP |
 | **缓存** | Redis 7.x（Lettuce）· Spring Cache · Cache-Aside |
 | **RAG** | 混合架构 — LangChain4j EmbeddingModel 向量化 + 自研中文分块 + 余弦检索 |
@@ -144,7 +144,7 @@ flowchart TB
     end
 
     subgraph External["外部服务"]
-        DeepSeek[(DeepSeek API<br/>Chat + Embeddings<br/>OpenAI 兼容协议)]
+        DeepSeek[(DeepSeek API<br/>Chat<br/>OpenAI 兼容协议)]
         MinIO[(MinIO<br/>S3 对象存储<br/>头像/文件)]
     end
 
@@ -210,7 +210,7 @@ npm install && npm run dev
 # → http://localhost:5173
 ```
 
-> **已知限制：** RAG 当前禁用（DeepSeek 无 Embedding API），AI 聊天助手退化为纯 LLM 对话。Redis 缓存在 dev 模式下切为 simple cache。
+> **已知限制：** RAG 当前禁用（DeepSeek 无 Embedding API），AI 聊天助手退化为纯 LLM 对话。Redis 缓存在 local 模式下切为内存缓存（无需启动 Redis）。
 
 ### 方式二：H2 本地开发（无需 MySQL/Redis/Docker）
 
